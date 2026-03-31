@@ -10,6 +10,7 @@ import { IconCircleCheck, IconCircleOff } from '@tabler/icons-react';
 import type { JSX } from 'react';
 import { useNavigate } from 'react-router';
 import { cleanResource } from '../utils';
+import { CardiotoxicityDashboard } from './CardiotoxicityDashboard';
 import { ClinicalImpressionDisplay } from './ClinicalImpressionDisplay';
 import { PatientObservations } from './PatientObservations';
 
@@ -30,6 +31,7 @@ export function PatientDetails(props: PatientDetailsProps): JSX.Element {
     ['encounter', 'Encounters'],
     ['clinical', 'Clinical Impressions'],
     ['observations', 'Observations'],
+    ['cardiotoxicity', 'Cardiotoxicidad'],
   ];
   // Get the current tab
   const tab = window.location.pathname.split('/').pop();
@@ -101,6 +103,9 @@ export function PatientDetails(props: PatientDetailsProps): JSX.Element {
         </Tabs.Panel>
         <Tabs.Panel value="observations">
           <PatientObservations patient={props.patient} />
+        </Tabs.Panel>
+        <Tabs.Panel value="cardiotoxicity">
+          <CardiotoxicityDashboard patient={props.patient} />
         </Tabs.Panel>
       </Tabs>
     </Document>
