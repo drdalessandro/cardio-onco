@@ -1,0 +1,758 @@
+{
+  "resourceType": "Bundle",
+  "type": "transaction",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:f3a1c2d4-8b5e-4f6a-9c7d-1e2f3a4b5c6d",
+      "request": {
+        "method": "PUT",
+        "url": "ValueSet?url=http://cts.nlm.nih.gov/fhir/ValueSet/2.16.840.1.113762.1.4.1010.4"
+      },
+      "resource": {
+        "resourceType": "ValueSet",
+        "status": "active",
+        "url": "http://cts.nlm.nih.gov/fhir/ValueSet/2.16.840.1.113762.1.4.1010.4",
+        "name": "medicamentos-argentina",
+        "title": "Vademécum Argentina — EPA Bienestar",
+        "description": "Listado de medicamentos para uso en Argentina con foco en cardio-oncología. Basado en el Vademécum Nacional de ANMAT e incluye agentes oncológicos, cardioprotectores y medicamentos de soporte.",
+        "compose": {
+          "include": [
+            {
+              "system": "https://anmat.gob.ar/vademecum",
+              "concept": [
+                {
+                  "code": "antraciclinas",
+                  "display": "── ANTRACICLINAS ──"
+                },
+                {
+                  "code": "doxorrubicina",
+                  "display": "Doxorrubicina"
+                },
+                {
+                  "code": "epirrubicina",
+                  "display": "Epirrubicina"
+                },
+                {
+                  "code": "idarrubicina",
+                  "display": "Idarrubicina"
+                },
+                {
+                  "code": "mitoxantrona",
+                  "display": "Mitoxantrona"
+                },
+                {
+                  "code": "daunorrubicina",
+                  "display": "Daunorrubicina"
+                },
+                {
+                  "code": "taxanos",
+                  "display": "── TAXANOS ──"
+                },
+                {
+                  "code": "paclitaxel",
+                  "display": "Paclitaxel"
+                },
+                {
+                  "code": "docetaxel",
+                  "display": "Docetaxel"
+                },
+                {
+                  "code": "nab-paclitaxel",
+                  "display": "Paclitaxel nab (Abraxane)"
+                },
+                {
+                  "code": "anticuerpos-anti-her2",
+                  "display": "── ANTI-HER2 ──"
+                },
+                {
+                  "code": "trastuzumab",
+                  "display": "Trastuzumab"
+                },
+                {
+                  "code": "pertuzumab",
+                  "display": "Pertuzumab"
+                },
+                {
+                  "code": "lapatinib",
+                  "display": "Lapatinib"
+                },
+                {
+                  "code": "neratinib",
+                  "display": "Neratinib"
+                },
+                {
+                  "code": "trastuzumab-emtansina",
+                  "display": "Trastuzumab emtansina (T-DM1)"
+                },
+                {
+                  "code": "trastuzumab-deruxtecan",
+                  "display": "Trastuzumab deruxtecan (T-DXd)"
+                },
+                {
+                  "code": "alquilantes",
+                  "display": "── ALQUILANTES ──"
+                },
+                {
+                  "code": "ciclofosfamida",
+                  "display": "Ciclofosfamida"
+                },
+                {
+                  "code": "ifosfamida",
+                  "display": "Ifosfamida"
+                },
+                {
+                  "code": "clorambucilo",
+                  "display": "Clorambucilo"
+                },
+                {
+                  "code": "melfalano",
+                  "display": "Melfalano"
+                },
+                {
+                  "code": "dacarbazina",
+                  "display": "Dacarbazina"
+                },
+                {
+                  "code": "temozolomida",
+                  "display": "Temozolomida"
+                },
+                {
+                  "code": "platinos",
+                  "display": "── PLATINOS ──"
+                },
+                {
+                  "code": "cisplatino",
+                  "display": "Cisplatino"
+                },
+                {
+                  "code": "carboplatino",
+                  "display": "Carboplatino"
+                },
+                {
+                  "code": "oxaliplatino",
+                  "display": "Oxaliplatino"
+                },
+                {
+                  "code": "antimetabolitos",
+                  "display": "── ANTIMETABOLITOS ──"
+                },
+                {
+                  "code": "fluorouracilo",
+                  "display": "Fluorouracilo (5-FU)"
+                },
+                {
+                  "code": "capecitabina",
+                  "display": "Capecitabina"
+                },
+                {
+                  "code": "gemcitabina",
+                  "display": "Gemcitabina"
+                },
+                {
+                  "code": "metotrexato",
+                  "display": "Metotrexato"
+                },
+                {
+                  "code": "pemetrexed",
+                  "display": "Pemetrexed"
+                },
+                {
+                  "code": "citarabina",
+                  "display": "Citarabina"
+                },
+                {
+                  "code": "fludarabina",
+                  "display": "Fludarabina"
+                },
+                {
+                  "code": "claritromicina",
+                  "display": "Cladribina"
+                },
+                {
+                  "code": "alcaloides-vinca",
+                  "display": "── ALCALOIDES DE LA VINCA ──"
+                },
+                {
+                  "code": "vincristina",
+                  "display": "Vincristina"
+                },
+                {
+                  "code": "vinorelbina",
+                  "display": "Vinorelbina"
+                },
+                {
+                  "code": "vinblastina",
+                  "display": "Vinblastina"
+                },
+                {
+                  "code": "hormonoterapia",
+                  "display": "── HORMONOTERAPIA ──"
+                },
+                {
+                  "code": "tamoxifeno",
+                  "display": "Tamoxifeno"
+                },
+                {
+                  "code": "letrozol",
+                  "display": "Letrozol"
+                },
+                {
+                  "code": "anastrozol",
+                  "display": "Anastrozol"
+                },
+                {
+                  "code": "exemestano",
+                  "display": "Exemestano"
+                },
+                {
+                  "code": "fulvestrant",
+                  "display": "Fulvestrant"
+                },
+                {
+                  "code": "leuprolida",
+                  "display": "Acetato de Leuprolida"
+                },
+                {
+                  "code": "goserelina",
+                  "display": "Goserelina"
+                },
+                {
+                  "code": "bicalutamida",
+                  "display": "Bicalutamida"
+                },
+                {
+                  "code": "enzalutamida",
+                  "display": "Enzalutamida"
+                },
+                {
+                  "code": "abiraterona",
+                  "display": "Acetato de Abiraterona"
+                },
+                {
+                  "code": "inhibidores-cdk",
+                  "display": "── INHIBIDORES CDK 4/6 ──"
+                },
+                {
+                  "code": "palbociclib",
+                  "display": "Palbociclib"
+                },
+                {
+                  "code": "ribociclib",
+                  "display": "Ribociclib"
+                },
+                {
+                  "code": "abemaciclib",
+                  "display": "Abemaciclib"
+                },
+                {
+                  "code": "inhibidores-parp",
+                  "display": "── INHIBIDORES PARP ──"
+                },
+                {
+                  "code": "olaparib",
+                  "display": "Olaparib"
+                },
+                {
+                  "code": "niraparib",
+                  "display": "Niraparib"
+                },
+                {
+                  "code": "rucaparib",
+                  "display": "Rucaparib"
+                },
+                {
+                  "code": "inhibidores-vegf",
+                  "display": "── ANTI-VEGF / ANTIANGIOGÉNICOS ──"
+                },
+                {
+                  "code": "bevacizumab",
+                  "display": "Bevacizumab"
+                },
+                {
+                  "code": "sunitinib",
+                  "display": "Sunitinib"
+                },
+                {
+                  "code": "sorafenib",
+                  "display": "Sorafenib"
+                },
+                {
+                  "code": "pazopanib",
+                  "display": "Pazopanib"
+                },
+                {
+                  "code": "regorafenib",
+                  "display": "Regorafenib"
+                },
+                {
+                  "code": "lenvatinib",
+                  "display": "Lenvatinib"
+                },
+                {
+                  "code": "cabozantinib",
+                  "display": "Cabozantinib"
+                },
+                {
+                  "code": "inhibidores-egfr",
+                  "display": "── INHIBIDORES EGFR ──"
+                },
+                {
+                  "code": "erlotinib",
+                  "display": "Erlotinib"
+                },
+                {
+                  "code": "gefitinib",
+                  "display": "Gefitinib"
+                },
+                {
+                  "code": "afatinib",
+                  "display": "Afatinib"
+                },
+                {
+                  "code": "osimertinib",
+                  "display": "Osimertinib"
+                },
+                {
+                  "code": "cetuximab",
+                  "display": "Cetuximab"
+                },
+                {
+                  "code": "panitumumab",
+                  "display": "Panitumumab"
+                },
+                {
+                  "code": "inmunoterapia",
+                  "display": "── INMUNOTERAPIA (CHECKPOINT) ──"
+                },
+                {
+                  "code": "pembrolizumab",
+                  "display": "Pembrolizumab"
+                },
+                {
+                  "code": "nivolumab",
+                  "display": "Nivolumab"
+                },
+                {
+                  "code": "ipilimumab",
+                  "display": "Ipilimumab"
+                },
+                {
+                  "code": "atezolizumab",
+                  "display": "Atezolizumab"
+                },
+                {
+                  "code": "durvalumab",
+                  "display": "Durvalumab"
+                },
+                {
+                  "code": "avelumab",
+                  "display": "Avelumab"
+                },
+                {
+                  "code": "inhibidores-tirosina-kinasa",
+                  "display": "── INHIBIDORES TIROSINA KINASA ──"
+                },
+                {
+                  "code": "imatinib",
+                  "display": "Imatinib"
+                },
+                {
+                  "code": "dasatinib",
+                  "display": "Dasatinib"
+                },
+                {
+                  "code": "nilotinib",
+                  "display": "Nilotinib"
+                },
+                {
+                  "code": "bosutinib",
+                  "display": "Bosutinib"
+                },
+                {
+                  "code": "ponatinib",
+                  "display": "Ponatinib"
+                },
+                {
+                  "code": "ibrutinib",
+                  "display": "Ibrutinib"
+                },
+                {
+                  "code": "acalabrutinib",
+                  "display": "Acalabrutinib"
+                },
+                {
+                  "code": "inhibidores-mtor",
+                  "display": "── INHIBIDORES mTOR ──"
+                },
+                {
+                  "code": "everolimus",
+                  "display": "Everolimus"
+                },
+                {
+                  "code": "temsirolimus",
+                  "display": "Temsirolimus"
+                },
+                {
+                  "code": "otros-oncologicos",
+                  "display": "── OTROS ONCOLÓGICOS ──"
+                },
+                {
+                  "code": "irinotecan",
+                  "display": "Irinotecán"
+                },
+                {
+                  "code": "etoposido",
+                  "display": "Etopósido"
+                },
+                {
+                  "code": "rituximab",
+                  "display": "Rituximab"
+                },
+                {
+                  "code": "obinutuzumab",
+                  "display": "Obinutuzumab"
+                },
+                {
+                  "code": "bortezomib",
+                  "display": "Bortezomib"
+                },
+                {
+                  "code": "carfilzomib",
+                  "display": "Carfilzomib"
+                },
+                {
+                  "code": "lenalidomida",
+                  "display": "Lenalidomida"
+                },
+                {
+                  "code": "pomalidomida",
+                  "display": "Pomalidomida"
+                },
+                {
+                  "code": "venetoclax",
+                  "display": "Venetoclax"
+                },
+                {
+                  "code": "cardioprotectores",
+                  "display": "── CARDIOPROTECTORES ──"
+                },
+                {
+                  "code": "dexrazoxano",
+                  "display": "Dexrazoxano"
+                },
+                {
+                  "code": "betabloqueantes",
+                  "display": "── BETABLOQUEANTES ──"
+                },
+                {
+                  "code": "carvedilol",
+                  "display": "Carvedilol"
+                },
+                {
+                  "code": "metoprolol",
+                  "display": "Metoprolol"
+                },
+                {
+                  "code": "bisoprolol",
+                  "display": "Bisoprolol"
+                },
+                {
+                  "code": "atenolol",
+                  "display": "Atenolol"
+                },
+                {
+                  "code": "propranolol",
+                  "display": "Propranolol"
+                },
+                {
+                  "code": "nebivolol",
+                  "display": "Nebivolol"
+                },
+                {
+                  "code": "ieca",
+                  "display": "── IECA ──"
+                },
+                {
+                  "code": "enalapril",
+                  "display": "Enalapril"
+                },
+                {
+                  "code": "ramipril",
+                  "display": "Ramipril"
+                },
+                {
+                  "code": "lisinopril",
+                  "display": "Lisinopril"
+                },
+                {
+                  "code": "perindopril",
+                  "display": "Perindopril"
+                },
+                {
+                  "code": "captopril",
+                  "display": "Captopril"
+                },
+                {
+                  "code": "ara2",
+                  "display": "── ARA II ──"
+                },
+                {
+                  "code": "losartan",
+                  "display": "Losartán"
+                },
+                {
+                  "code": "valsartan",
+                  "display": "Valsartán"
+                },
+                {
+                  "code": "candesartan",
+                  "display": "Candesartán"
+                },
+                {
+                  "code": "irbesartan",
+                  "display": "Irbesartán"
+                },
+                {
+                  "code": "telmisartan",
+                  "display": "Telmisartán"
+                },
+                {
+                  "code": "sacubitril-valsartan",
+                  "display": "Sacubitril / Valsartán"
+                },
+                {
+                  "code": "antagonistas-aldosterona",
+                  "display": "── ANTAGONISTAS DE ALDOSTERONA ──"
+                },
+                {
+                  "code": "espironolactona",
+                  "display": "Espironolactona"
+                },
+                {
+                  "code": "eplerenona",
+                  "display": "Eplerenona"
+                },
+                {
+                  "code": "diureticos",
+                  "display": "── DIURÉTICOS ──"
+                },
+                {
+                  "code": "furosemida",
+                  "display": "Furosemida"
+                },
+                {
+                  "code": "torasemida",
+                  "display": "Torasemida"
+                },
+                {
+                  "code": "hidroclorotiazida",
+                  "display": "Hidroclorotiazida"
+                },
+                {
+                  "code": "indapamida",
+                  "display": "Indapamida"
+                },
+                {
+                  "code": "glifozinas",
+                  "display": "── GLIFLOZINAS (iSGLT2) ──"
+                },
+                {
+                  "code": "empagliflozina",
+                  "display": "Empagliflozina"
+                },
+                {
+                  "code": "dapagliflozina",
+                  "display": "Dapagliflozina"
+                },
+                {
+                  "code": "canagliflozina",
+                  "display": "Canagliflozina"
+                },
+                {
+                  "code": "antiarritimicos",
+                  "display": "── ANTIARRÍTMICOS ──"
+                },
+                {
+                  "code": "amiodarona",
+                  "display": "Amiodarona"
+                },
+                {
+                  "code": "digoxina",
+                  "display": "Digoxina"
+                },
+                {
+                  "code": "ivabradina",
+                  "display": "Ivabradina"
+                },
+                {
+                  "code": "verapamilo",
+                  "display": "Verapamilo"
+                },
+                {
+                  "code": "diltiazem",
+                  "display": "Diltiazem"
+                },
+                {
+                  "code": "estatinas",
+                  "display": "── ESTATINAS ──"
+                },
+                {
+                  "code": "atorvastatina",
+                  "display": "Atorvastatina"
+                },
+                {
+                  "code": "rosuvastatina",
+                  "display": "Rosuvastatina"
+                },
+                {
+                  "code": "simvastatina",
+                  "display": "Simvastatina"
+                },
+                {
+                  "code": "anticoagulantes",
+                  "display": "── ANTICOAGULANTES ──"
+                },
+                {
+                  "code": "warfarina",
+                  "display": "Warfarina"
+                },
+                {
+                  "code": "apixaban",
+                  "display": "Apixabán"
+                },
+                {
+                  "code": "rivaroxaban",
+                  "display": "Rivaroxabán"
+                },
+                {
+                  "code": "dabigatran",
+                  "display": "Dabigatrán"
+                },
+                {
+                  "code": "heparina",
+                  "display": "Heparina no fraccionada"
+                },
+                {
+                  "code": "enoxaparina",
+                  "display": "Enoxaparina"
+                },
+                {
+                  "code": "antiplaquetarios",
+                  "display": "── ANTIPLAQUETARIOS ──"
+                },
+                {
+                  "code": "aspirina",
+                  "display": "Ácido Acetilsalicílico (Aspirina)"
+                },
+                {
+                  "code": "clopidogrel",
+                  "display": "Clopidogrel"
+                },
+                {
+                  "code": "ticagrelor",
+                  "display": "Ticagrelor"
+                },
+                {
+                  "code": "calcioantagonistas",
+                  "display": "── CALCIOANTAGONISTAS ──"
+                },
+                {
+                  "code": "amlodipina",
+                  "display": "Amlodipina"
+                },
+                {
+                  "code": "nifedipina",
+                  "display": "Nifedipina"
+                },
+                {
+                  "code": "nitratos",
+                  "display": "── NITRATOS ──"
+                },
+                {
+                  "code": "nitroglicerina",
+                  "display": "Nitroglicerina"
+                },
+                {
+                  "code": "isosorbide-dinitrato",
+                  "display": "Isosorbide dinitrato"
+                },
+                {
+                  "code": "isosorbide-mononitrato",
+                  "display": "Isosorbide mononitrato"
+                },
+                {
+                  "code": "soporte-oncologico",
+                  "display": "── SOPORTE ONCOLÓGICO ──"
+                },
+                {
+                  "code": "ondansetron",
+                  "display": "Ondansetrón"
+                },
+                {
+                  "code": "granisteron",
+                  "display": "Granisetrón"
+                },
+                {
+                  "code": "aprepitant",
+                  "display": "Aprepitant"
+                },
+                {
+                  "code": "dexametasona",
+                  "display": "Dexametasona"
+                },
+                {
+                  "code": "prednisona",
+                  "display": "Prednisona"
+                },
+                {
+                  "code": "metilprednisolona",
+                  "display": "Metilprednisolona"
+                },
+                {
+                  "code": "filgrastim",
+                  "display": "Filgrastim (G-CSF)"
+                },
+                {
+                  "code": "pegfilgrastim",
+                  "display": "Pegfilgrastim"
+                },
+                {
+                  "code": "eritropoyetina",
+                  "display": "Eritropoyetina alfa"
+                },
+                {
+                  "code": "darbepoetina",
+                  "display": "Darbepoetina alfa"
+                },
+                {
+                  "code": "acido-zoledronico",
+                  "display": "Ácido Zoledrónico"
+                },
+                {
+                  "code": "denosumab",
+                  "display": "Denosumab"
+                },
+                {
+                  "code": "leucovorina",
+                  "display": "Leucovorina (Ácido folínico)"
+                },
+                {
+                  "code": "mesna",
+                  "display": "Mesna (uroprotector)"
+                },
+                {
+                  "code": "allopurinol",
+                  "display": "Alopurinol"
+                },
+                {
+                  "code": "rasburicasa",
+                  "display": "Rasburicasa"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
