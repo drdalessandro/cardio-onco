@@ -10,15 +10,13 @@ export function LandingPage(): JSX.Element {
     <Document width={500}>
       <Stack align="center">
         <Title order={1} fz={36}>
-          Welcome!
+          Bienvenido!
         </Title>
         <Text>
-          This "Hello World" example demonstrates how to build a simple React application that fetches Patient data from
-          Medplum. If you haven't already done so, <Anchor href="https://app.medplum.com/register">register</Anchor> for
-          Medplum Project. After that you can sign into your project by clicking the link below.
+          Seguimiento, Cardio Oncología
         </Text>
         <Button component={Link} to="/signin" size="lg" radius="xl">
-          Sign in
+          Ingresar
         </Button>
       </Stack>
     </Document>
