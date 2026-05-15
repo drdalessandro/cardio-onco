@@ -15,39 +15,74 @@ interface PatientObservationsProps {
   patient: Patient;
 }
 
-const weightCoding: Coding = {
+const pesoCoding: Coding = {
   system: 'http://loinc.org',
   code: '29463-7',
-  display: 'weight',
+  display: 'peso',
 };
 
-const heightCoding: Coding = {
+const alturaCoding: Coding = {
   system: 'http://loinc.org',
   code: '8302-2',
-  display: 'height',
+  display: 'altura',
 };
 
-const bloodPressureCoding: Coding = {
+const presionArterialCoding: Coding = {
   system: 'http://loinc.org',
   code: '85354-9',
-  display: 'blood-pressure',
+  display: 'presion-arterial',
 };
 
-const bmiCoding: Coding = {
+const imcCoding: Coding = {
   system: 'http://loinc.org',
   code: '39156-5',
-  display: 'bmi',
+  display: 'imc',
+};
+
+const circunferenciaAbdominalCoding: Coding = {
+  system: 'http://loinc.org',
+  code: '8280-0',
+  display: 'circunferencia-abdominal',
+};
+
+const frecuenciaCardiacaCoding: Coding = {
+  system: 'http://loinc.org',
+  code: '8867-4',
+  display: 'frecuencia-cardiaca',
+};
+
+const duracionSuenoCoding: Coding = {
+  system: 'http://loinc.org',
+  code: '65981-9',
+  display: 'duracion-sueno',
+};
+
+const duracionEjercicioCoding: Coding = {
+  system: 'http://loinc.org',
+  code: '55411-3',
+  display: 'duracion-ejercicio',
+};
+
+const duracionPeriodoCoding: Coding = {
+  system: 'http://loinc.org',
+  code: '49033-4',
+  display: 'duracion-periodo',
 };
 
 export function PatientObservations(props: PatientObservationsProps): JSX.Element {
   const navigate = useNavigate();
 
   const tabs = [
-    ['all', 'All Observations'],
-    ['height', 'Height'],
-    ['weight', 'Weight'],
-    ['blood-pressure', 'Blood Pressure'],
-    ['bmi', 'BMI'],
+    ['todas', 'Todas las Observaciones'],
+    ['altura', 'Altura'],
+    ['peso', 'Peso'],
+    ['circunferencia-abdominal', 'Circunferencia Abdominal'],
+    ['presion-arterial', 'Presión Arterial'],
+    ['frecuencia-cardiaca', 'Frecuencia Cardíaca'],
+    ['imc', 'IMC'],
+    ['duracion-sueno', 'Duración Sueño'],
+    ['duracion-ejercicio', 'Duración Ejercicio'],
+    ['duracion-periodo', 'Duración Período (Fem)'],
   ];
   const [currentTab, setCurrentTab] = useState<string[]>(tabs[0]);
 
@@ -74,7 +109,7 @@ export function PatientObservations(props: PatientObservationsProps): JSX.Elemen
         </Menu.Dropdown>
       </Menu>
       <Tabs value={currentTab[0]} mt="md">
-        <Tabs.Panel value="all">
+        <Tabs.Panel value="todas">
           <SearchControl
             search={search}
             hideFilters={true}
@@ -85,17 +120,32 @@ export function PatientObservations(props: PatientObservationsProps): JSX.Elemen
             }}
           />
         </Tabs.Panel>
-        <Tabs.Panel value="height">
-          <ObservationGraph code={heightCoding} patient={props.patient} />
+        <Tabs.Panel value="altura">
+          <ObservationGraph code={alturaCoding} patient={props.patient} />
         </Tabs.Panel>
-        <Tabs.Panel value="weight">
-          <ObservationGraph code={weightCoding} patient={props.patient} />
+        <Tabs.Panel value="peso">
+          <ObservationGraph code={pesoCoding} patient={props.patient} />
         </Tabs.Panel>
-        <Tabs.Panel value="blood-pressure">
-          <ObservationGraph code={bloodPressureCoding} patient={props.patient} />
+        <Tabs.Panel value="circunferencia-abdominal">
+          <ObservationGraph code={circunferenciaAbdominalCoding} patient={props.patient} />
         </Tabs.Panel>
-        <Tabs.Panel value="bmi">
-          <ObservationGraph code={bmiCoding} patient={props.patient} />
+        <Tabs.Panel value="presion-arterial">
+          <ObservationGraph code={presionArterialCoding} patient={props.patient} />
+        </Tabs.Panel>
+        <Tabs.Panel value="frecuencia-cardiaca">
+          <ObservationGraph code={frecuenciaCardiacaCoding} patient={props.patient} />
+        </Tabs.Panel>
+        <Tabs.Panel value="imc">
+          <ObservationGraph code={imcCoding} patient={props.patient} />
+        </Tabs.Panel>
+        <Tabs.Panel value="duracion-sueno">
+          <ObservationGraph code={duracionSuenoCoding} patient={props.patient} />
+        </Tabs.Panel>
+        <Tabs.Panel value="duracion-ejercicio">
+          <ObservationGraph code={duracionEjercicioCoding} patient={props.patient} />
+        </Tabs.Panel>
+        <Tabs.Panel value="duracion-periodo">
+          <ObservationGraph code={duracionPeriodoCoding} patient={props.patient} />
         </Tabs.Panel>
       </Tabs>
     </div>
