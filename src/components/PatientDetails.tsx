@@ -25,12 +25,12 @@ export function PatientDetails(props: PatientDetailsProps): JSX.Element {
   const id = props.patient.id;
 
   const tabs = [
-    ['details', 'Details'],
-    ['edit', 'Edit'],
-    ['history', 'History'],
-    ['encounter', 'Encounters'],
-    ['clinical', 'Clinical Impressions'],
-    ['observations', 'Observations'],
+    ['details', 'Detalles'],
+    ['edit', 'Editar'],
+    ['history', 'Historial'],
+    ['encounter', 'Encuentros'],
+    ['clinical', 'Impresiones Clínicas'],
+    ['observations', 'Observaciones'],
     ['cardiotoxicity', 'Cardiotoxicidad'],
   ];
   // Get the current tab

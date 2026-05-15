@@ -20,7 +20,8 @@ export function ObservationGraph(props: ObservationGraphProps): JSX.Element {
   const medplum = useMedplum();
 
   // Get the chartDataset codes and units
-  const { chartDatasets } = getMeasurementStyles(props.code);
+  const measurementStyle = getMeasurementStyles(props.code);
+  const { chartDatasets } = measurementStyle;
   const [chartData, setChartData] = useState<ChartData<'line', number[], string>>();
 
   function getMeasurementStyles(code: Coding): ObservationType {
@@ -56,7 +57,7 @@ export function ObservationGraph(props: ObservationGraphProps): JSX.Element {
   if (observations.length === 0) {
     return (
       <Paper p="md" m="md">
-        No {props.code.display?.toLowerCase()} observations
+        No hay observaciones de {measurementStyle.title.toLowerCase()}
       </Paper>
     );
   }
