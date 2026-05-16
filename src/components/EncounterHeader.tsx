@@ -17,19 +17,19 @@ export function EncounterHeader({ encounter, patient }: EncounterHeaderProps): J
     <Group>
       <Container m="sm">
         <Text size="sm" c="dimmed">
-          Encounter Type:
+          Tipo de Encuentro:
         </Text>
         <Title order={5}>{encounter.type?.[0].coding?.[0].display}</Title>
       </Container>
       <Container m="sm">
         <Text size="sm" c="dimmed">
-          Patient:
+          Paciente:
         </Text>
-        <Title order={5}>{patient ? getDisplayString(patient) : 'Unknown'}</Title>
+        <Title order={5}>{patient ? getDisplayString(patient) : 'Desconocido'}</Title>
       </Container>
       <Container m="sm">
         <Text size="sm" c="dimmed">
-          Date:
+          Fecha:
         </Text>
         <Title order={5}>{displayDate}</Title>
       </Container>

@@ -8,7 +8,7 @@
       "resource": {
         "resourceType": "Questionnaire",
         "status": "active",
-        "title": "Obstetric Return Visit",
+        "title": "Visita Obstétrica",
         "name": "obstetric-visit",
         "subjectType": ["Encounter"],
         "useContext": [
@@ -50,50 +50,50 @@
           {
             "linkId": "date",
             "type": "dateTime",
-            "text": "Date of Visit",
+            "text": "Fecha de la Visita",
             "required": true
           },
           {
             "linkId": "reason-for-visit",
             "type": "choice",
-            "text": "Reason for visit",
+            "text": "Motivo de Consulta",
             "required": true,
             "answerValueSet": "http://hl7.org/fhir/ValueSet/icd-10"
           },
           {
             "linkId": "problem-list",
             "type": "boolean",
-            "text": "Add to problem list"
+            "text": "Agregar a lista de problemas"
           },
           {
             "linkId": "vitals",
             "type": "group",
-            "text": "Vital Signs",
+            "text": "Signos Vitales",
             "item": [
               {
                 "linkId": "systolic",
                 "type": "quantity",
-                "text": "Systolic Blood Pressure",
+                "text": "Presión Arterial Sistólica",
                 "code": [{ "code": "8480-6", "system": "http://loinc.org", "display": "Sytolic blood pressure" }],
                 "initial": [{ "valueQuantity": { "unit": "mm[Hg]" } }]
               },
               {
                 "linkId": "diastolic",
                 "type": "quantity",
-                "text": "Diastolic Blood Pressure",
+                "text": "Presión Arterial Diastólica",
                 "code": [{ "code": "8462-4", "system": "http://loinc.org", "display": "Diastolic blood pressure" }],
                 "initial": [{ "valueQuantity": { "unit": "mm[Hg]" } }]
               },
               {
                 "linkId": "height",
                 "type": "quantity",
-                "text": "Height",
+                "text": "Altura",
                 "code": [{ "code": "8302-2", "system": "http://loinc.org", "display": "Body height" }]
               },
               {
                 "linkId": "weight",
                 "type": "quantity",
-                "text": "Weight",
+                "text": "Peso",
                 "code": [{ "code": "29463-7", "system": "http://loinc.org", "display": "Body weight" }]
               }
             ]
@@ -102,7 +102,7 @@
             "id": "id-29",
             "linkId": "total-weight-gain",
             "type": "quantity",
-            "text": "Total Weight Gain",
+            "text": "Ganancia de Peso Total",
             "code": [
               {
                 "code": "56078-9",
@@ -115,40 +115,40 @@
             "id": "id-24",
             "linkId": "g16",
             "type": "group",
-            "text": "Pregnancy History",
+            "text": "Historia Obstétrica",
             "item": [
               {
                 "id": "id-25",
                 "linkId": "gravida",
                 "type": "integer",
-                "text": "Gravida",
+                "text": "Gestas",
                 "code": [{ "code": "161732006", "system": "http://snomed.info/sct", "display": "Gravida" }]
               },
               {
                 "id": "id-26",
                 "linkId": "para",
                 "type": "integer",
-                "text": "Para",
+                "text": "Partos",
                 "code": [{ "code": "118212000", "system": "http://snomed.info/sct", "display": "Para" }]
               },
               {
                 "id": "id-31",
                 "linkId": "g23",
                 "type": "group",
-                "text": "Gestational Age",
+                "text": "Edad Gestacional",
                 "item": [
                   {
                     "id": "id-32",
                     "linkId": "gestational-age-weeks",
                     "type": "integer",
-                    "text": "Weeks",
+                    "text": "Semanas",
                     "code": [{ "code": "49051-6", "system": "http://loinc.org", "display": "Gestational age in weeks" }]
                   },
                   {
                     "id": "id-33",
                     "linkId": "gestational-age-days",
                     "type": "integer",
-                    "text": "Days",
+                    "text": "Días",
                     "code": [{ "code": "56078-9", "system": "http://loinc.org", "display": "Gestational age in days" }]
                   }
                 ]
@@ -159,13 +159,13 @@
             "id": "id-34",
             "linkId": "g26",
             "type": "group",
-            "text": "Assessment & Plan",
+            "text": "Evaluación y Plan",
             "item": [
               {
                 "id": "id-35",
                 "linkId": "assessment",
                 "type": "text",
-                "text": "Assessment"
+                "text": "Evaluación"
               }
             ]
           }
@@ -178,7 +178,7 @@
       "resource": {
         "resourceType": "Questionnaire",
         "status": "active",
-        "title": "Gynecology New Visit",
+        "title": "Consulta Ginecológica",
         "name": "gynecology-visit",
         "subjectType": ["Encounter"],
         "useContext": [
@@ -220,50 +220,50 @@
           {
             "linkId": "date",
             "type": "dateTime",
-            "text": "Date of Visit",
+            "text": "Fecha de la Visita",
             "required": true
           },
           {
             "linkId": "reason-for-visit",
             "type": "choice",
-            "text": "Reason for visit",
+            "text": "Motivo de Consulta",
             "required": true,
             "answerValueSet": "http://hl7.org/fhir/ValueSet/icd-10"
           },
           {
             "linkId": "problem-list",
             "type": "boolean",
-            "text": "Add to problem list"
+            "text": "Agregar a lista de problemas"
           },
           {
             "linkId": "vitals",
             "type": "group",
-            "text": "Vital Signs",
+            "text": "Signos Vitales",
             "item": [
               {
                 "linkId": "systolic",
                 "type": "quantity",
-                "text": "Systolic Blood Pressure",
+                "text": "Presión Arterial Sistólica",
                 "code": [{ "code": "8480-6", "system": "http://loinc.org", "display": "Sytolic blood pressure" }],
                 "initial": [{ "valueQuantity": { "unit": "mm[Hg]" } }]
               },
               {
                 "linkId": "diastolic",
                 "type": "quantity",
-                "text": "Diastolic Blood Pressure",
+                "text": "Presión Arterial Diastólica",
                 "code": [{ "code": "8462-4", "system": "http://loinc.org", "display": "Diastolic blood pressure" }],
                 "initial": [{ "valueQuantity": { "unit": "mm[Hg]" } }]
               },
               {
                 "linkId": "height",
                 "type": "quantity",
-                "text": "Height",
+                "text": "Altura",
                 "code": [{ "code": "8302-2", "system": "http://loinc.org", "display": "Body height" }]
               },
               {
                 "linkId": "weight",
                 "type": "quantity",
-                "text": "Weight",
+                "text": "Peso",
                 "code": [{ "code": "29463-7", "system": "http://loinc.org", "display": "Body weight" }]
               }
             ]
@@ -272,13 +272,13 @@
             "id": "id-4",
             "linkId": "g3",
             "type": "group",
-            "text": "History of Present Illness",
+            "text": "Historia de la Enfermedad Actual",
             "item": [
               {
                 "id": "id-5",
                 "linkId": "last-period",
                 "type": "date",
-                "text": "Last Period",
+                "text": "Última Menstruación",
                 "code": [
                   { "code": "8665-2", "system": "http://loinc.org", "display": "Last menstrual period start date" }
                 ]
@@ -287,39 +287,21 @@
                 "id": "id-6",
                 "linkId": "contraception",
                 "type": "open-choice",
-                "text": "Preferred Contraception Method",
+                "text": "Método Anticonceptivo Preferido",
                 "code": [
                   { "code": "8659-5", "system": "http://loinc.org", "display": "Birth control method - Reported" }
                 ],
                 "answerOption": [
-                  {
-                    "id": "id-7",
-                    "valueCoding": {
-                      "code": "Condom",
-                      "display": "Condom"
-                    }
-                  },
-                  {
-                    "id": "id-8",
-                    "valueCoding": {
-                      "code": "IUD",
-                      "display": "IUD"
-                    }
-                  },
-                  {
-                    "id": "id-9",
-                    "valueCoding": {
-                      "code": "Birth Control Pill",
-                      "display": "Birth Control Pill"
-                    }
-                  }
+                  { "id": "id-7",  "valueCoding": { "code": "Condom",            "display": "Preservativo" } },
+                  { "id": "id-8",  "valueCoding": { "code": "IUD",               "display": "DIU" } },
+                  { "id": "id-9",  "valueCoding": { "code": "Birth Control Pill", "display": "Anticonceptivo Oral" } }
                 ]
               },
               {
                 "id": "id-10",
                 "linkId": "mammogram",
                 "type": "date",
-                "text": "Last Mammogram",
+                "text": "Última Mamografía",
                 "code": [
                   { "code": "429736008", "system": "http://snomed.info/sct", "display": "Date of last mammogram" }
                 ]
@@ -330,117 +312,45 @@
             "id": "id-11",
             "linkId": "g7",
             "type": "group",
-            "text": "Social History",
+            "text": "Historia Social",
             "item": [
               {
                 "id": "id-12",
                 "linkId": "smoking",
                 "type": "choice",
-                "text": "Smoking Status",
+                "text": "Estado Tabáquico",
                 "code": [{ "code": "72166-2", "system": "http://loinc.org", "display": "Tobacco smoking status" }],
                 "answerOption": [
-                  {
-                    "valueCoding": {
-                      "system": "http://snomed.info/sct",
-                      "code": "446172000",
-                      "display": "Failed attempt to stop smoking"
-                    }
-                  },
-                  {
-                    "valueCoding": {
-                      "system": "http://snomed.info/sct",
-                      "code": "77176002",
-                      "display": "Smoker"
-                    }
-                  },
-                  {
-                    "valueCoding": {
-                      "system": "http://snomed.info/sct",
-                      "code": "449345000",
-                      "display": "Smoked before confirmation of pregnancy"
-                    }
-                  },
-                  {
-                    "valueCoding": {
-                      "system": "http://snomed.info/sct",
-                      "code": "160616005",
-                      "display": "Trying to give up smoking"
-                    }
-                  },
-                  {
-                    "valueCoding": {
-                      "system": "http://snomed.info/sct",
-                      "code": "8392000",
-                      "display": "Non-smoker"
-                    }
-                  }
+                  { "valueCoding": { "system": "http://snomed.info/sct", "code": "446172000", "display": "Intento fallido de dejar de fumar" } },
+                  { "valueCoding": { "system": "http://snomed.info/sct", "code": "77176002",  "display": "Fumador activo" } },
+                  { "valueCoding": { "system": "http://snomed.info/sct", "code": "449345000", "display": "Fumó antes del embarazo" } },
+                  { "valueCoding": { "system": "http://snomed.info/sct", "code": "160616005", "display": "En proceso de dejar de fumar" } },
+                  { "valueCoding": { "system": "http://snomed.info/sct", "code": "8392000",   "display": "No fumador" } }
                 ]
               },
               {
                 "id": "id-13",
                 "linkId": "drugs",
                 "type": "choice",
-                "text": "Drug Use",
+                "text": "Consumo de Sustancias",
                 "code": [{ "code": "74204-9", "system": "http://loinc.org", "display": "Drug use" }],
                 "answerOption": [
-                  {
-                    "valueCoding": {
-                      "system": "http://snomed.info/sct",
-                      "code": "417284009",
-                      "display": "Current drug user"
-                    }
-                  },
-                  {
-                    "valueCoding": {
-                      "system": "http://snomed.info/sct",
-                      "code": "441668002",
-                      "display": "Drug seeking behavior"
-                    }
-                  },
-                  {
-                    "valueCoding": {
-                      "system": "http://snomed.info/sct",
-                      "code": "44870007",
-                      "display": "Ex-drug user"
-                    }
-                  },
-                  {
-                    "valueCoding": {
-                      "system": "http://snomed.info/sct",
-                      "code": "707848009",
-                      "display": "Patient denies drug use"
-                    }
-                  }
+                  { "valueCoding": { "system": "http://snomed.info/sct", "code": "417284009", "display": "Consumidor activo" } },
+                  { "valueCoding": { "system": "http://snomed.info/sct", "code": "441668002", "display": "Conducta de búsqueda de sustancias" } },
+                  { "valueCoding": { "system": "http://snomed.info/sct", "code": "44870007",  "display": "Ex consumidor" } },
+                  { "valueCoding": { "system": "http://snomed.info/sct", "code": "707848009", "display": "Niega consumo de sustancias" } }
                 ]
               },
               {
                 "id": "id-14",
                 "linkId": "housing",
                 "type": "choice",
-                "text": "Housing Status",
+                "text": "Situación Habitacional",
                 "code": [{ "code": "71802-3", "system": "http://loinc.org", "display": "Housing status" }],
                 "answerOption": [
-                  {
-                    "valueCoding": {
-                      "system": "http://snomed.info/sct",
-                      "code": "32911000",
-                      "display": "Homeless"
-                    }
-                  },
-                  {
-                    "valueCoding": {
-                      "system": "http://snomed.info/sct",
-                      "code": "160943002",
-                      "display": "Lives in own home"
-                    }
-                  },
-                  {
-                    "valueCoding": {
-                      "system": "http://snomed.info/sct",
-                      "code": "365510008",
-                      "display": "Temporary shelter arrangements - finding"
-                    }
-                  }
+                  { "valueCoding": { "system": "http://snomed.info/sct", "code": "32911000",  "display": "Sin hogar" } },
+                  { "valueCoding": { "system": "http://snomed.info/sct", "code": "160943002", "display": "Vivienda propia" } },
+                  { "valueCoding": { "system": "http://snomed.info/sct", "code": "365510008", "display": "Alojamiento transitorio" } }
                 ]
               }
             ]
@@ -449,37 +359,25 @@
             "id": "id-15",
             "linkId": "g11",
             "type": "group",
-            "text": "Assessment & Plan",
+            "text": "Evaluación y Plan",
             "item": [
               {
                 "id": "id-16",
                 "linkId": "visit-length",
                 "type": "open-choice",
-                "text": "Visit Length (minutes)",
+                "text": "Duración de la Consulta (minutos)",
                 "answerOption": [
-                  {
-                    "id": "id-17",
-                    "valueInteger": 15
-                  },
-                  {
-                    "id": "id-18",
-                    "valueInteger": 30
-                  },
-                  {
-                    "id": "id-19",
-                    "valueInteger": 45
-                  },
-                  {
-                    "id": "id-20",
-                    "valueInteger": 50
-                  }
+                  { "id": "id-17", "valueInteger": 15 },
+                  { "id": "id-18", "valueInteger": 30 },
+                  { "id": "id-19", "valueInteger": 45 },
+                  { "id": "id-20", "valueInteger": 50 }
                 ]
               },
               {
                 "id": "id-21",
                 "linkId": "assessment",
                 "type": "text",
-                "text": "Assessment"
+                "text": "Evaluación"
               }
             ]
           }
@@ -492,7 +390,7 @@
       "resource": {
         "resourceType": "Questionnaire",
         "status": "active",
-        "title": "Encounter Note",
+        "title": "Nota de Encuentro",
         "name": "encounter-note",
         "useContext": [
           {
@@ -532,50 +430,50 @@
           {
             "linkId": "date",
             "type": "dateTime",
-            "text": "Date of Visit",
+            "text": "Fecha de la Visita",
             "required": true
           },
           {
             "linkId": "reason-for-visit",
             "type": "choice",
-            "text": "Reason for visit",
+            "text": "Motivo de Consulta",
             "required": true,
             "answerValueSet": "http://hl7.org/fhir/ValueSet/icd-10"
           },
           {
             "linkId": "problem-list",
             "type": "boolean",
-            "text": "Add to problem list"
+            "text": "Agregar a lista de problemas"
           },
           {
             "linkId": "vitals",
             "type": "group",
-            "text": "Vital Signs",
+            "text": "Signos Vitales",
             "item": [
               {
                 "linkId": "systolic",
                 "type": "quantity",
-                "text": "Systolic Blood Pressure",
+                "text": "Presión Arterial Sistólica",
                 "code": [{ "code": "8480-6", "system": "http://loinc.org", "display": "Sytolic blood pressure" }],
                 "initial": [{ "valueQuantity": { "unit": "mm[Hg]" } }]
               },
               {
                 "linkId": "diastolic",
                 "type": "quantity",
-                "text": "Diastolic Blood Pressure",
+                "text": "Presión Arterial Diastólica",
                 "code": [{ "code": "8462-4", "system": "http://loinc.org", "display": "Diastolic blood pressure" }],
                 "initial": [{ "valueQuantity": { "unit": "mm[Hg]" } }]
               },
               {
                 "linkId": "height",
                 "type": "quantity",
-                "text": "Height",
+                "text": "Altura",
                 "code": [{ "code": "8302-2", "system": "http://loinc.org", "display": "Body height" }]
               },
               {
                 "linkId": "weight",
                 "type": "quantity",
-                "text": "Weight",
+                "text": "Peso",
                 "code": [{ "code": "29463-7", "system": "http://loinc.org", "display": "Body weight" }]
               }
             ]
@@ -583,85 +481,43 @@
           {
             "linkId": "subjective-evaluation",
             "type": "group",
-            "text": "Subjective Evaluation",
+            "text": "Evaluación Subjetiva",
             "item": [
               {
                 "linkId": "hot-flashes",
                 "type": "boolean",
-                "text": "Hot flashes",
-                "code": [
-                  {
-                    "code": "70376-9",
-                    "system": "http://loinc.org",
-                    "display": "I have hot flashes in the last 7 days"
-                  }
-                ]
+                "text": "Sofocos",
+                "code": [{ "code": "70376-9", "system": "http://loinc.org", "display": "I have hot flashes in the last 7 days" }]
               },
               {
                 "linkId": "mood-swings",
                 "type": "boolean",
-                "text": "Mood swings",
-                "code": [
-                  {
-                    "code": "70805-7",
-                    "system": "http://loinc.org",
-                    "display": "I have mood swings in the last 7 days"
-                  }
-                ]
+                "text": "Cambios de humor",
+                "code": [{ "code": "70805-7", "system": "http://loinc.org", "display": "I have mood swings in the last 7 days" }]
               },
               {
                 "linkId": "vaginal-dryness",
                 "type": "boolean",
-                "text": "Vaginal dryness",
-                "code": [
-                  {
-                    "code": "70802-4",
-                    "system": "http://loinc.org",
-                    "display": "I have vaginal dryness in the last 7 days"
-                  }
-                ]
+                "text": "Sequedad vaginal",
+                "code": [{ "code": "70802-4", "system": "http://loinc.org", "display": "I have vaginal dryness in the last 7 days" }]
               },
               {
                 "linkId": "sleep-disturbance",
                 "type": "boolean",
-                "text": "Sleep Disturbance",
-                "code": [
-                  {
-                    "code": "77712-8",
-                    "system": "http://loinc.org",
-                    "display": "Sleep disturbance indicator in the last week"
-                  }
-                ]
+                "text": "Alteración del sueño",
+                "code": [{ "code": "77712-8", "system": "http://loinc.org", "display": "Sleep disturbance indicator in the last week" }]
               },
               {
                 "linkId": "self-reported-history",
                 "type": "open-choice",
-                "text": "Self-reported history",
+                "text": "Antecedentes declarados",
                 "answerOption": [
-                  {
-                    "id": "bloodClots",
-                    "valueString": "Blood clots"
-                  },
-                  {
-                    "id": "stroke",
-                    "valueString": "Stroke"
-                  },
-                  {
-                    "id": "breastCancer",
-                    "valueString": "Breast cancer"
-                  },
-                  {
-                    "id": "endometrialCancer",
-                    "valueString": "Endometrial cancer"
-                  },
-                  {
-                    "id": "irregularBleeding",
-                    "valueString": "Irregular bleeding"
-                  },
-                  {
-                    "id": "obesity",
-                    "valueString": "BMI > 30"
-                  }
+                  { "id": "bloodClots",        "valueString": "Trombosis" },
+                  { "id": "stroke",            "valueString": "ACV" },
+                  { "id": "breastCancer",      "valueString": "Cáncer de mama" },
+                  { "id": "endometrialCancer", "valueString": "Cáncer endometrial" },
+                  { "id": "irregularBleeding", "valueString": "Sangrado irregular" },
+                  { "id": "obesity",           "valueString": "IMC > 30" }
                 ]
               }
             ]
@@ -669,7 +525,7 @@
           {
             "linkId": "assessment",
             "type": "text",
-            "text": "Notes and comments",
+            "text": "Notas y comentarios",
             "repeats": true
           }
         ]
