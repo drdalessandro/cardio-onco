@@ -33,7 +33,6 @@ export function CreateEncounter({ opened, handlers }: CreateEncounterProps): JSX
 
   function handleQuestionnaireSubmit(formData: QuestionnaireResponse): void {
     const answers = getQuestionnaireAnswers(formData);
-    console.log(answers);
     const patientReference = answers['patient'].valueReference as Reference<Patient>;
     const encounterClass = answers['class'].valueCoding as Coding;
     const encounterType = answers['type']?.valueCoding ?? undefined;
@@ -81,8 +80,8 @@ export function CreateEncounter({ opened, handlers }: CreateEncounterProps): JSX
       .then((encounter) => {
         showNotification({
           icon: <IconCircleCheck />,
-          title: 'Success',
-          message: 'Encounter created',
+          title: 'Éxito',
+          message: 'Encuentro creado',
         });
         navigate(`/Encounter/${encounter.id}`)?.catch(console.error);
       })
@@ -97,8 +96,7 @@ export function CreateEncounter({ opened, handlers }: CreateEncounterProps): JSX
   }
 
   return (
-    <Modal opened={opened} onClose={handlers.close}>
-      <p>Create an Encounter</p>
+    <Modal opened={opened} onClose={handlers.close} title="Crear Encuentro">
       <QuestionnaireForm questionnaire={createEncounterQuestionnaire} onSubmit={handleQuestionnaireSubmit} />
     </Modal>
   );
@@ -107,23 +105,19 @@ export function CreateEncounter({ opened, handlers }: CreateEncounterProps): JSX
 const createEncounterQuestionnaire: Questionnaire = {
   resourceType: 'Questionnaire',
   status: 'active',
-  title: 'Create an Encounter',
+  title: 'Crear Encuentro',
   id: 'new-encounter',
   item: [
     {
       linkId: 'patient',
       type: 'reference',
-      text: 'Which patient is the subject of this encounter?',
+      text: '¿Cuál es el paciente?',
       required: true,
       extension: [
         {
           url: 'http://hl7.org/fhir/StructureDefinition/questionnaire-referenceResource',
           valueCodeableConcept: {
-            coding: [
-              {
-                code: 'Patient',
-              },
-            ],
+            coding: [{ code: 'Patient' }],
           },
         },
       ],
@@ -131,26 +125,44 @@ const createEncounterQuestionnaire: Questionnaire = {
     {
       linkId: 'date',
       type: 'date',
-      text: 'What is the date of the encounter?',
+      text: '¿Cuál es la fecha del encuentro?',
       required: true,
-      initial: [
-        {
-          valueDate: new Date().toISOString().slice(0, 10),
-        },
-      ],
+      initial: [{ valueDate: new Date().toISOString().slice(0, 10) }],
     },
     {
       linkId: 'class',
       type: 'choice',
-      text: 'What is the encounter class?',
+      text: '¿Cuál es la modalidad del encuentro?',
       required: true,
-      answerValueSet: 'http://terminology.hl7.org/ValueSet/v3-ActEncounterCode',
+      answerOption: [
+        { valueCoding: { system: 'http://terminology.hl7.org/CodeSystem/v3-ActCode', code: 'AMB',  display: 'Ambulatorio' } },
+        { valueCoding: { system: 'http://terminology.hl7.org/CodeSystem/v3-ActCode', code: 'IMP',  display: 'Internación' } },
+        { valueCoding: { system: 'http://terminology.hl7.org/CodeSystem/v3-ActCode', code: 'EMER', display: 'Emergencia' } },
+        { valueCoding: { system: 'http://terminology.hl7.org/CodeSystem/v3-ActCode', code: 'VR',   display: 'Virtual / Telemedicina' } },
+        { valueCoding: { system: 'http://terminology.hl7.org/CodeSystem/v3-ActCode', code: 'HH',   display: 'Atención Domiciliaria' } },
+      ],
     },
     {
       linkId: 'type',
       type: 'choice',
-      text: 'What type of encounter is this?',
-      answerValueSet: 'https://example.com/encounter-types',
+      text: '¿Qué tipo de encuentro es?',
+      answerOption: [
+        { valueCoding: { system: 'http://snomed.info/sct', code: '11429006',  display: 'Consulta' } },
+        { valueCoding: { system: 'http://snomed.info/sct', code: '308540004', display: 'Internación' } },
+        { valueCoding: { system: 'http://snomed.info/sct', code: '371883000', display: 'Procedimiento Ambulatorio' } },
+        { valueCoding: { system: 'http://snomed.info/sct', code: '185317003', display: 'Consulta Telefónica' } },
+        { valueCoding: { system: 'http://snomed.info/sct', code: '439708006', display: 'Visita Domiciliaria' } },
+        { valueCoding: { system: 'http://snomed.info/sct', code: '390906007', display: 'Seguimiento' } },
+        { valueCoding: { system: 'http://snomed.info/sct', code: '50849002',  display: 'Guardia / Emergencia' } },
+        { valueCoding: { system: 'http://snomed.info/sct', code: '255327002', display: 'Ambulatorio' } },
+        { valueCoding: { system: 'http://snomed.info/sct', code: '110466009', display: 'Evaluación Preoperatoria' } },
+        { valueCoding: { system: 'http://snomed.info/sct', code: '91251008',  display: 'Kinesiología / Fisioterapia' } },
+        { valueCoding: { system: 'http://snomed.info/sct', code: '31205005',  display: 'Psiquiatría / Psicología' } },
+        { valueCoding: { system: 'http://snomed.info/sct', code: '163497009', display: 'Obstetricia' } },
+        { valueCoding: { system: 'http://snomed.info/sct', code: '83607001',  display: 'Ginecología' } },
+        { valueCoding: { system: 'http://snomed.info/sct', code: '225362009', display: 'Odontología' } },
+        { valueCoding: { system: 'http://snomed.info/sct', code: '304567001', display: 'Internación de Larga Estadía' } },
+      ],
     },
   ],
 };

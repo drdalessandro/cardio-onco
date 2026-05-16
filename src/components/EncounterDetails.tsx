@@ -21,7 +21,7 @@ export function EncounterDetails(props: EncounterDetailsProps): JSX.Element {
 
   const id = props.encounter.id;
 
-  const tabs = ['Note', 'Details', 'History'];
+  const tabs = ['Nota', 'Detalles', 'Historial'];
   const tab = window.location.pathname.split('/').pop();
   const currentTab = tab && tabs.map((t) => t.toLowerCase()).includes(tab) ? tab : tabs[0].toLowerCase();
 
