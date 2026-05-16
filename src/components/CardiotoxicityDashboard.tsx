@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { Alert, Badge, Card, Grid, Group, Paper, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import { formatDate, getReferenceString } from '@medplum/core';
-import type { MedicationAdministration, Observation, Patient } from '@medplum/fhirtypes';
+import type { MedicationAdministration, MedicationRequest, Observation, Patient } from '@medplum/fhirtypes';
 import { useMedplum } from '@medplum/react';
 import { IconAlertTriangle, IconCircleCheck, IconHeart, IconHeartbeat, IconPill } from '@tabler/icons-react';
 import type { ChartDataset } from 'chart.js';
@@ -91,27 +91,34 @@ function getRiskInfo(level: ESCRiskLevel): RiskInfo {
   }
 }
 
-function getMedicationName(med: MedicationAdministration): string {
-  if (med.medicationCodeableConcept) {
-    return (
-      med.medicationCodeableConcept.text ??
-      med.medicationCodeableConcept.coding?.[0]?.display ??
-      'Medicación no especificada'
-    );
-  }
-  return 'Medicación (referencia)';
+interface MedicationItem {
+  id: string;
+  name: string;
+  date: string | undefined;
+  status: string;
 }
 
-function getMedicationDate(med: MedicationAdministration): string | undefined {
-  if (med.effectiveDateTime) return med.effectiveDateTime;
-  if (med.effectivePeriod?.start) return med.effectivePeriod.start;
-  return undefined;
+function medicationRequestToItem(med: MedicationRequest): MedicationItem {
+  const name =
+    med.medicationCodeableConcept?.text ??
+    med.medicationCodeableConcept?.coding?.[0]?.display ??
+    'Medicación no especificada';
+  return { id: `req-${med.id}`, name, date: med.authoredOn, status: med.status ?? '' };
+}
+
+function medicationAdministrationToItem(med: MedicationAdministration): MedicationItem {
+  const name =
+    med.medicationCodeableConcept?.text ??
+    med.medicationCodeableConcept?.coding?.[0]?.display ??
+    'Medicación (referencia)';
+  const date = med.effectiveDateTime ?? med.effectivePeriod?.start;
+  return { id: `adm-${med.id}`, name, date, status: med.status ?? '' };
 }
 
 export function CardiotoxicityDashboard(props: CardiotoxicityDashboardProps): JSX.Element {
   const medplum = useMedplum();
   const [lvefObservations, setLvefObservations] = useState<Observation[]>([]);
-  const [medications, setMedications] = useState<MedicationAdministration[]>([]);
+  const [medicationItems, setMedicationItems] = useState<MedicationItem[]>([]);
 
   useEffect(() => {
     const patientRef = getReferenceString(props.patient);
@@ -126,13 +133,34 @@ export function CardiotoxicityDashboard(props: CardiotoxicityDashboardProps): JS
       .then(setLvefObservations)
       .catch(console.error);
 
-    medplum
-      .searchResources('MedicationAdministration', {
+    Promise.all([
+      medplum.searchResources('MedicationRequest', {
+        patient: patientRef,
+        _sort: '-authored',
+        _count: '50',
+      }),
+      medplum.searchResources('MedicationAdministration', {
         patient: patientRef,
         _sort: '-effective-time',
         _count: '50',
+      }),
+    ])
+      .then(([requests, administrations]) => {
+        const items: MedicationItem[] = [
+          ...requests.map(medicationRequestToItem),
+          ...administrations.map(medicationAdministrationToItem),
+        ];
+        // Deduplicate by name, keeping most recent. Sort by date desc.
+        const seen = new Set<string>();
+        const unique = items.filter((item) => {
+          const key = item.name.toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        unique.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
+        setMedicationItems(unique);
       })
-      .then(setMedications)
       .catch(console.error);
   }, [medplum, props.patient]);
 
@@ -256,20 +284,20 @@ export function CardiotoxicityDashboard(props: CardiotoxicityDashboardProps): JS
                 Medicaciones Oncológicas
               </Group>
             </Title>
-            {medications.length > 0 ? (
+            {medicationItems.length > 0 ? (
               <Stack gap="xs">
-                {medications.slice(0, 10).map((med) => (
-                  <Group key={med.id} justify="space-between">
-                    <Text size="sm">{getMedicationName(med)}</Text>
+                {medicationItems.slice(0, 10).map((item) => (
+                  <Group key={item.id} justify="space-between">
+                    <Text size="sm">{item.name}</Text>
                     <Badge size="sm" variant="light" color="blue">
-                      {formatDate(getMedicationDate(med))}
+                      {item.date ? formatDate(item.date) : '—'}
                     </Badge>
                   </Group>
                 ))}
               </Stack>
             ) : (
               <Text c="dimmed" size="sm">
-                No se registraron administraciones de medicamentos.
+                No se registraron medicamentos oncológicos.
               </Text>
             )}
           </Paper>
