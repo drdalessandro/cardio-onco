@@ -88,7 +88,7 @@ export function EncounterDetails(props: EncounterDetailsProps): JSX.Element {
 
   return (
     <Document>
-      <Tabs defaultValue="details" value={currentTab.toLowerCase()} onChange={handleTabChange}>
+      <Tabs defaultValue="detalles" value={currentTab.toLowerCase()} onChange={handleTabChange}>
         <Tabs.List mb="sm">
           {tabs.map((tab) => (
             <Tabs.Tab key={tab} value={tab.toLowerCase()}>
@@ -96,17 +96,17 @@ export function EncounterDetails(props: EncounterDetailsProps): JSX.Element {
             </Tabs.Tab>
           ))}
         </Tabs.List>
-        <Tabs.Panel value="note">
+        <Tabs.Panel value="nota">
           {response ? (
             <EncounterNoteDisplay response={response} encounter={props.encounter} />
           ) : (
             <QuestionnaireForm questionnaire={questionnaire} onSubmit={handleQuestionnaireSubmit} />
           )}
         </Tabs.Panel>
-        <Tabs.Panel value="details">
+        <Tabs.Panel value="detalles">
           <ResourceTable value={props.encounter} ignoreMissingValues={true} />
         </Tabs.Panel>
-        <Tabs.Panel value="history">
+        <Tabs.Panel value="historial">
           <ResourceHistoryTable resourceType="Encounter" id={props.encounter.id} />
         </Tabs.Panel>
       </Tabs>
