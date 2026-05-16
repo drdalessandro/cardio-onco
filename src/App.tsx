@@ -25,16 +25,16 @@ export function App(): JSX.Element | null {
       logo={<Logo size={24} />}
       menus={[
         {
-          title: 'Charts',
-          links: [{ icon: <IconUser />, label: 'Patients', href: '/Patient' }],
+          title: 'Historias Clínicas',
+          links: [{ icon: <IconUser />, label: 'Pacientes', href: '/Patient' }],
         },
         {
-          title: 'Encounters',
+          title: 'Encuentros',
           links: [
-            { icon: <IconClipboardList />, label: 'All Encounters', href: '/Encounter' },
+            { icon: <IconClipboardList />, label: 'Todos los Encuentros', href: '/Encounter' },
             {
               icon: <IconClipboardHeart />,
-              label: 'My Encounters',
+              label: 'Mis Encuentros',
               href: `/Encounter?participant=Practitioner/${profile?.id}`,
             },
           ],
