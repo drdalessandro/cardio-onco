@@ -133,10 +133,10 @@ export function CardiotoxicityDashboard(props: CardiotoxicityDashboardProps): JS
       .then(setLvefObservations)
       .catch(console.error);
 
-    Promise.all([
+    Promise.allSettled([
       medplum.searchResources('MedicationRequest', {
         patient: patientRef,
-        _sort: '-authored',
+        _sort: '-authoredon',
         _count: '50',
       }),
       medplum.searchResources('MedicationAdministration', {
@@ -144,24 +144,26 @@ export function CardiotoxicityDashboard(props: CardiotoxicityDashboardProps): JS
         _sort: '-effective-time',
         _count: '50',
       }),
-    ])
-      .then(([requests, administrations]) => {
-        const items: MedicationItem[] = [
-          ...requests.map(medicationRequestToItem),
-          ...administrations.map(medicationAdministrationToItem),
-        ];
-        // Deduplicate by name, keeping most recent. Sort by date desc.
-        const seen = new Set<string>();
-        const unique = items.filter((item) => {
-          const key = item.name.toLowerCase();
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-        unique.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
-        setMedicationItems(unique);
-      })
-      .catch(console.error);
+    ]).then(([reqResult, admResult]) => {
+      const requests = reqResult.status === 'fulfilled' ? reqResult.value : [];
+      const administrations = admResult.status === 'fulfilled' ? admResult.value : [];
+      if (reqResult.status === 'rejected') console.error('MedicationRequest search failed:', reqResult.reason);
+      if (admResult.status === 'rejected') console.error('MedicationAdministration search failed:', admResult.reason);
+
+      const items: MedicationItem[] = [
+        ...requests.map(medicationRequestToItem),
+        ...administrations.map(medicationAdministrationToItem),
+      ];
+      const seen = new Set<string>();
+      const unique = items.filter((item) => {
+        const key = item.name.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      unique.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
+      setMedicationItems(unique);
+    });
   }, [medplum, props.patient]);
 
   const riskLevel = computeESCRisk(lvefObservations);
