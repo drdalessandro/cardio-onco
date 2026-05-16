@@ -8,6 +8,7 @@ import { IconAlertTriangle, IconCircleCheck, IconHeart, IconHeartbeat, IconPill 
 import type { ChartDataset } from 'chart.js';
 import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
+import { isOncologyMedication } from '../oncologyMedications';
 import { LVEFChart } from './graphs/LVEFChart';
 
 interface CardiotoxicityDashboardProps {
@@ -96,6 +97,7 @@ interface MedicationItem {
   name: string;
   date: string | undefined;
   status: string;
+  codings: { system?: string; code?: string }[];
 }
 
 function medicationRequestToItem(med: MedicationRequest): MedicationItem {
@@ -103,7 +105,8 @@ function medicationRequestToItem(med: MedicationRequest): MedicationItem {
     med.medicationCodeableConcept?.text ??
     med.medicationCodeableConcept?.coding?.[0]?.display ??
     'Medicación no especificada';
-  return { id: `req-${med.id}`, name, date: med.authoredOn, status: med.status ?? '' };
+  const codings = med.medicationCodeableConcept?.coding ?? [];
+  return { id: `req-${med.id}`, name, date: med.authoredOn, status: med.status ?? '', codings };
 }
 
 function medicationAdministrationToItem(med: MedicationAdministration): MedicationItem {
@@ -112,7 +115,8 @@ function medicationAdministrationToItem(med: MedicationAdministration): Medicati
     med.medicationCodeableConcept?.coding?.[0]?.display ??
     'Medicación (referencia)';
   const date = med.effectiveDateTime ?? med.effectivePeriod?.start;
-  return { id: `adm-${med.id}`, name, date, status: med.status ?? '' };
+  const codings = med.medicationCodeableConcept?.coding ?? [];
+  return { id: `adm-${med.id}`, name, date, status: med.status ?? '', codings };
 }
 
 export function CardiotoxicityDashboard(props: CardiotoxicityDashboardProps): JSX.Element {
@@ -150,17 +154,19 @@ export function CardiotoxicityDashboard(props: CardiotoxicityDashboardProps): JS
       if (reqResult.status === 'rejected') console.error('MedicationRequest search failed:', reqResult.reason);
       if (admResult.status === 'rejected') console.error('MedicationAdministration search failed:', admResult.reason);
 
-      const items: MedicationItem[] = [
+      const allItems: MedicationItem[] = [
         ...requests.map(medicationRequestToItem),
         ...administrations.map(medicationAdministrationToItem),
       ];
       const seen = new Set<string>();
-      const unique = items.filter((item) => {
-        const key = item.name.toLowerCase();
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
+      const unique = allItems
+        .filter((item) => isOncologyMedication(item.name, item.codings))
+        .filter((item) => {
+          const key = item.name.toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
       unique.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
       setMedicationItems(unique);
     });
