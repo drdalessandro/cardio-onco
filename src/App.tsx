@@ -1,10 +1,11 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
 import { AppShell, ErrorBoundary, Loading, Logo, useMedplum, useMedplumProfile } from '@medplum/react';
-import { IconClipboardHeart, IconClipboardList, IconUser } from '@tabler/icons-react';
+import { IconClipboardHeart, IconClipboardList, IconFileText, IconUser } from '@tabler/icons-react';
 import { Suspense } from 'react';
 import type { JSX } from 'react';
 import { Route, Routes } from 'react-router';
+import { DashboardPage } from './pages/DashboardPage';
 import { EncounterPage } from './pages/EncounterPage';
 import { LandingPage } from './pages/LandingPage';
 import { PatientPage } from './pages/PatientPage';
@@ -39,12 +40,22 @@ export function App(): JSX.Element | null {
             },
           ],
         },
+        {
+          title: 'Recursos',
+          links: [
+            {
+              icon: <IconFileText />,
+              label: 'Evidencia Científica',
+              href: '/evidencia-cientifica-plataforma.html',
+            },
+          ],
+        },
       ]}
     >
       <ErrorBoundary>
         <Suspense fallback={<Loading />}>
           <Routes>
-            <Route path="/" element={profile ? <SearchPage /> : <LandingPage />} />
+            <Route path="/" element={profile ? <DashboardPage /> : <LandingPage />} />
             <Route path="/signin" element={<SignInPage />} />
             <Route path="/Patient/:id">
               <Route index element={<PatientPage />} />
