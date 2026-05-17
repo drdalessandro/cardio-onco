@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
-import { Tabs } from '@mantine/core';
+import { Divider, Stack, Tabs } from '@mantine/core';
 import { showNotification } from '@mantine/notifications';
 import { normalizeErrorString, Operator } from '@medplum/core';
 import type { SearchRequest } from '@medplum/core';
@@ -12,6 +12,8 @@ import { useNavigate } from 'react-router';
 import { cleanResource } from '../utils';
 import { CardiotoxicityDashboard } from './CardiotoxicityDashboard';
 import { ClinicalImpressionDisplay } from './ClinicalImpressionDisplay';
+import { HFAICOSCalculator } from './HFAICOSCalculator';
+import { MonitoringSchedule } from './MonitoringSchedule';
 import { PatientObservations } from './PatientObservations';
 
 interface PatientDetailsProps {
@@ -32,6 +34,7 @@ export function PatientDetails(props: PatientDetailsProps): JSX.Element {
     ['clinical', 'Impresiones Clínicas'],
     ['observations', 'Observaciones'],
     ['cardiotoxicity', 'Cardiotoxicidad'],
+    ['monitoreo', 'Monitoreo ESC'],
   ];
   // Get the current tab
   const tab = window.location.pathname.split('/').pop();
@@ -106,6 +109,13 @@ export function PatientDetails(props: PatientDetailsProps): JSX.Element {
         </Tabs.Panel>
         <Tabs.Panel value="cardiotoxicity">
           <CardiotoxicityDashboard patient={props.patient} />
+        </Tabs.Panel>
+        <Tabs.Panel value="monitoreo">
+          <Stack gap="xl" p="xs">
+            <HFAICOSCalculator patient={props.patient} />
+            <Divider />
+            <MonitoringSchedule patient={props.patient} />
+          </Stack>
         </Tabs.Panel>
       </Tabs>
     </Document>
