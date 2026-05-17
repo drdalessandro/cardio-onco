@@ -381,17 +381,15 @@ export function MonitoringSchedule({ patient }: MonitoringScheduleProps): JSX.El
                 </Table.Td>
                 <Table.Td>
                   {task.status !== 'ordered' ? (
-                    <Tooltip label="Crear orden de monitoreo (ServiceRequest)">
-                      <ActionIcon
-                        size="sm"
-                        variant="light"
-                        color="blue"
-                        loading={creatingId === task.id}
-                        onClick={() => handleCreateOne(task)}
-                      >
-                        <IconPlus size={14} />
-                      </ActionIcon>
-                    </Tooltip>
+                    <Button
+                      size="compact-xs"
+                      variant="light"
+                      color="blue"
+                      loading={creatingId === task.id}
+                      onClick={() => handleCreateOne(task)}
+                    >
+                      {task.type === 'echo' ? 'Cargar Eco' : 'Registrar Resultado'}
+                    </Button>
                   ) : (
                     <Text size="xs" c="dimmed">—</Text>
                   )}
@@ -439,7 +437,7 @@ function StatusBadge({ status }: { status: MonitoringTask['status'] }): JSX.Elem
   }
   if (status === 'overdue') {
     return (
-      <Badge color="red" variant="filled" size="sm" leftSection={<IconClockExclamation size={10} />}>
+      <Badge color="red" variant="light" size="sm" leftSection={<IconClockExclamation size={10} />}>
         Vencido
       </Badge>
     );
