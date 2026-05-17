@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router';
 import { cleanResource } from '../utils';
 import { CardiotoxicityDashboard } from './CardiotoxicityDashboard';
 import { ClinicalImpressionDisplay } from './ClinicalImpressionDisplay';
+import { BiomarkerAlerts } from './BiomarkerAlerts';
 import { HFAICOSCalculator } from './HFAICOSCalculator';
 import { MonitoringSchedule } from './MonitoringSchedule';
 import { PatientObservations } from './PatientObservations';
@@ -35,6 +36,7 @@ export function PatientDetails(props: PatientDetailsProps): JSX.Element {
     ['observations', 'Observaciones'],
     ['cardiotoxicity', 'Cardiotoxicidad'],
     ['monitoreo', 'Monitoreo ESC'],
+    ['alertas', 'Alertas'],
   ];
   // Get the current tab
   const tab = window.location.pathname.split('/').pop();
@@ -115,6 +117,11 @@ export function PatientDetails(props: PatientDetailsProps): JSX.Element {
             <HFAICOSCalculator patient={props.patient} />
             <Divider />
             <MonitoringSchedule patient={props.patient} />
+          </Stack>
+        </Tabs.Panel>
+        <Tabs.Panel value="alertas">
+          <Stack p="xs">
+            <BiomarkerAlerts patient={props.patient} />
           </Stack>
         </Tabs.Panel>
       </Tabs>
