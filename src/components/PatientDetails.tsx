@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router';
 import { cleanResource } from '../utils';
 import { CardiotoxicityDashboard } from './CardiotoxicityDashboard';
 import { ClinicalImpressionDisplay } from './ClinicalImpressionDisplay';
+import { AnthracyclineSurvivorDashboard } from './AnthracyclineSurvivorDashboard';
 import { BiomarkerAlerts } from './BiomarkerAlerts';
 import { HFAICOSCalculator } from './HFAICOSCalculator';
 import { InterconsultaCardioOnco } from './InterconsultaCardioOnco';
@@ -39,6 +40,7 @@ export function PatientDetails(props: PatientDetailsProps): JSX.Element {
     ['monitoreo', 'Monitoreo ESC'],
     ['alertas', 'Alertas'],
     ['interconsulta', 'Interconsulta'],
+    ['sobrevivientes', 'Sobrevivientes'],
   ];
   // Get the current tab
   const tab = window.location.pathname.split('/').pop();
@@ -129,6 +131,11 @@ export function PatientDetails(props: PatientDetailsProps): JSX.Element {
         <Tabs.Panel value="interconsulta">
           <Stack p="xs">
             <InterconsultaCardioOnco patient={props.patient} />
+          </Stack>
+        </Tabs.Panel>
+        <Tabs.Panel value="sobrevivientes">
+          <Stack p="xs">
+            <AnthracyclineSurvivorDashboard patient={props.patient} />
           </Stack>
         </Tabs.Panel>
       </Tabs>
