@@ -15,7 +15,7 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { showNotification } from '@mantine/notifications';
-import type { Patient, RiskAssessment } from '@medplum/fhirtypes';
+import type { Condition, Patient, RiskAssessment } from '@medplum/fhirtypes';
 import { useMedplum } from '@medplum/react';
 import { IconAlertTriangle, IconCircleCheck, IconCircleOff, IconEdit, IconShieldHalf } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
@@ -179,6 +179,59 @@ function parseExistingAssessment(ra: RiskAssessment): {
 }
 
 // ---------------------------------------------------------------------------
+// ICD-10 → CV risk factor mapping (auto-prefill)
+// Keys are ICD-10 prefixes; values are CV_RISK_FACTORS ids
+// ---------------------------------------------------------------------------
+const ICD10_TO_CV_FACTOR: Array<{ prefix: string; factorId: string }> = [
+  { prefix: 'I10', factorId: 'hypertension' },
+  { prefix: 'I11', factorId: 'hypertension' },
+  { prefix: 'I12', factorId: 'hypertension' },
+  { prefix: 'I13', factorId: 'hypertension' },
+  { prefix: 'E10', factorId: 'diabetes' },
+  { prefix: 'E11', factorId: 'diabetes' },
+  { prefix: 'E13', factorId: 'diabetes' },
+  { prefix: 'E78', factorId: 'dyslipidemia' },
+  { prefix: 'E66', factorId: 'obesity' },
+  { prefix: 'F17', factorId: 'smoking' },
+  { prefix: 'Z87.891', factorId: 'smoking' },
+  { prefix: 'N18', factorId: 'ckd' },
+];
+
+// ICD-10 → Very High / High factor mapping
+const ICD10_TO_HIGH_FACTOR: Array<{ prefix: string; factorId: string }> = [
+  { prefix: 'I50', factorId: 'hf-reduced' },   // Heart failure
+  { prefix: 'I25', factorId: 'stable-ihd' },   // Chronic ischaemic heart disease
+  { prefix: 'I21', factorId: 'recent-event' }, // Acute MI
+  { prefix: 'I63', factorId: 'recent-event' }, // Stroke
+  { prefix: 'G45', factorId: 'recent-event' }, // TIA
+];
+
+function prefillFromConditions(conditions: Condition[]): {
+  cv: string[];
+  high: string[];
+  veryHigh: string[];
+} {
+  const cv = new Set<string>();
+  const high = new Set<string>();
+  const veryHigh = new Set<string>();
+
+  for (const cond of conditions) {
+    const codings = cond.code?.coding ?? [];
+    for (const coding of codings) {
+      const code = (coding.code ?? '').toUpperCase();
+      for (const { prefix, factorId } of ICD10_TO_CV_FACTOR) {
+        if (code.startsWith(prefix.toUpperCase())) cv.add(factorId);
+      }
+      for (const { prefix, factorId } of ICD10_TO_HIGH_FACTOR) {
+        if (code.startsWith(prefix.toUpperCase())) high.add(factorId);
+      }
+    }
+  }
+
+  return { cv: [...cv], high: [...high], veryHigh: [...veryHigh] };
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 interface HFAICOSCalculatorProps {
@@ -192,6 +245,7 @@ export function HFAICOSCalculator({ patient }: HFAICOSCalculatorProps): JSX.Elem
   const [loadingAssessment, setLoadingAssessment] = useState(true);
   const [existing, setExisting] = useState<{ level: RiskLevel; date: string; noteText: string } | undefined>();
   const [saving, setSaving] = useState(false);
+  const [prefilling, setPrefilling] = useState(false);
 
   // Form state
   const [selVeryHigh, setSelVeryHigh] = useState<string[]>([]);
@@ -218,12 +272,28 @@ export function HFAICOSCalculator({ patient }: HFAICOSCalculatorProps): JSX.Elem
   }, [medplum, patient.id]);
 
   function handleOpen(): void {
-    // Pre-populate form from note text of existing assessment is complex; reset cleanly
     setSelVeryHigh([]);
     setSelHigh([]);
     setSelCV([]);
     setSelTx([]);
     open();
+
+    // Auto-prefill from active FHIR Conditions
+    setPrefilling(true);
+    medplum
+      .searchResources('Condition', {
+        patient: `Patient/${patient.id}`,
+        'clinical-status': 'active',
+        _count: '100',
+      })
+      .then((conditions) => {
+        const prefilled = prefillFromConditions(conditions);
+        if (prefilled.cv.length > 0) setSelCV(prefilled.cv);
+        if (prefilled.high.length > 0) setSelHigh(prefilled.high);
+        if (prefilled.veryHigh.length > 0) setSelVeryHigh(prefilled.veryHigh);
+      })
+      .catch(console.error)
+      .finally(() => setPrefilling(false));
   }
 
   async function handleSave(): Promise<void> {
@@ -261,8 +331,14 @@ export function HFAICOSCalculator({ patient }: HFAICOSCalculatorProps): JSX.Elem
             <IconShieldHalf size={18} />
             <Title order={5}>Score de Riesgo HFA-ICOS (ESC 2022)</Title>
           </Group>
-          <Button size="xs" variant="light" leftSection={<IconEdit size={14} />} onClick={handleOpen}>
-            {existing ? 'Actualizar evaluación' : 'Calcular score'}
+          <Button
+            size="xs"
+            variant={existing ? 'light' : 'filled'}
+            color="violet"
+            leftSection={existing ? <IconEdit size={14} /> : <IconShieldHalf size={14} />}
+            onClick={handleOpen}
+          >
+            {existing ? 'Actualizar evaluación' : '+ Evaluar Riesgo Basal'}
           </Button>
         </Group>
 
@@ -286,9 +362,15 @@ export function HFAICOSCalculator({ patient }: HFAICOSCalculatorProps): JSX.Elem
             </Text>
           </Alert>
         ) : (
-          <Alert color="gray" icon={<IconShieldHalf size={18} />} title="Sin evaluación registrada">
+          <Alert
+            color="violet"
+            variant="light"
+            icon={<IconShieldHalf size={18} />}
+            title="Sin evaluación registrada"
+            styles={{ root: { borderLeft: '4px solid var(--mantine-color-violet-4)' } }}
+          >
             <Text size="sm">
-              No hay score HFA-ICOS registrado para este paciente. Calculá el score basal antes de iniciar el
+              No hay score HFA-ICOS registrado para este paciente. Evaluá el riesgo basal antes de iniciar el
               tratamiento oncológico (recomendación Clase I — ESC 2022).
             </Text>
           </Alert>
@@ -304,6 +386,20 @@ export function HFAICOSCalculator({ patient }: HFAICOSCalculatorProps): JSX.Elem
         scrollAreaComponent={undefined}
       >
         <Stack gap="md">
+          {prefilling && (
+            <Group gap="xs">
+              <Loader size="xs" />
+              <Text size="xs" c="dimmed">Cargando condiciones activas del paciente…</Text>
+            </Group>
+          )}
+          {!prefilling && (selCV.length > 0 || selHigh.length > 0 || selVeryHigh.length > 0) && (
+            <Alert color="blue" variant="light" p="xs">
+              <Text size="xs">
+                Se pre-completaron factores detectados en las condiciones activas del paciente. Revisá y ajustá según criterio clínico.
+              </Text>
+            </Alert>
+          )}
+
           {/* Section 1 */}
           <div>
             <Text fw={700} size="sm" c="red" mb="xs">
