@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Evidencia Científica — Plataforma Digital Cardio-Oncología</title>
+  <style>
+    :root {
+      --azul: #1d4ed8;
+      --violeta: #6d28d9;
+      --lavanda: #a78bfa;
+      --texto: #1e293b;
+      --gris: #64748b;
+      --gris-claro: #f1f5f9;
+      --borde: #e2e8f0;
+      --rojo: #dc2626;
+      --amarillo: #d97706;
+      --verde: #16a34a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Georgia', 'Times New Roman', serif;
+      font-size: 11pt;
+      line-height: 1.65;
+      color: var(--texto);
+      background: #fff;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 2rem 2.5rem;
+    }
+
+    /* Print button — hidden when printing */
+    .print-bar {
+      background: var(--gris-claro);
+      border: 1px solid var(--borde);
+      border-radius: 8px;
+      padding: 0.75rem 1.25rem;
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.85rem;
+      color: var(--gris);
+    }
+    .print-btn {
+      background: linear-gradient(135deg, var(--azul), var(--violeta));
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 0.45rem 1.1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Inter', system-ui, sans-serif;
+      letter-spacing: 0.2px;
+    }
+    .print-btn:hover { opacity: 0.9; }
+
+    /* Header */
+    .doc-header {
+      border-bottom: 3px solid var(--azul);
+      padding-bottom: 1.25rem;
+      margin-bottom: 1.75rem;
+    }
+    .doc-header .tag {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--violeta);
+      margin-bottom: 0.5rem;
+    }
+    .doc-header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--texto);
+      line-height: 1.25;
+      margin-bottom: 0.5rem;
+    }
+    .doc-header .subtitle {
+      font-size: 0.95rem;
+      color: var(--gris);
+      font-style: italic;
+    }
+    .doc-header .meta {
+      margin-top: 0.75rem;
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.78rem;
+      color: var(--gris);
+    }
+
+    /* Resumen ejecutivo */
+    .resumen {
+      background: linear-gradient(135deg, #eff6ff, #f5f3ff);
+      border-left: 4px solid var(--azul);
+      border-radius: 0 6px 6px 0;
+      padding: 1rem 1.25rem;
+      margin-bottom: 2rem;
+      font-size: 0.93rem;
+    }
+    .resumen strong { color: var(--azul); }
+
+    /* Section */
+    h2 {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--azul);
+      margin: 2rem 0 0.6rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid var(--borde);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .phase-badge {
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, var(--azul), var(--violeta));
+      color: white;
+      padding: 0.15rem 0.55rem;
+      border-radius: 10px;
+    }
+
+    h3 {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--violeta);
+      margin: 1rem 0 0.35rem;
+    }
+
+    p { margin-bottom: 0.75rem; }
+
+    /* Evidence box */
+    .evidence {
+      background: var(--gris-claro);
+      border: 1px solid var(--borde);
+      border-radius: 6px;
+      padding: 0.7rem 1rem;
+      margin: 0.75rem 0;
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.82rem;
+      color: var(--gris);
+    }
+    .evidence strong { color: var(--texto); }
+
+    /* Risk table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.75rem 0 1rem;
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.8rem;
+    }
+    thead tr {
+      background: linear-gradient(135deg, var(--azul), var(--violeta));
+      color: white;
+    }
+    th { padding: 0.5rem 0.75rem; text-align: left; font-weight: 600; letter-spacing: 0.3px; }
+    td { padding: 0.45rem 0.75rem; border-bottom: 1px solid var(--borde); vertical-align: top; }
+    tr:nth-child(even) td { background: var(--gris-claro); }
+    .risk-low { color: var(--verde); font-weight: 700; }
+    .risk-mod { color: var(--amarillo); font-weight: 700; }
+    .risk-high { color: #ea580c; font-weight: 700; }
+    .risk-vhigh { color: var(--rojo); font-weight: 700; }
+
+    /* Alert thresholds */
+    .alert-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+      margin: 0.75rem 0;
+    }
+    .alert-card {
+      padding: 0.6rem 0.9rem;
+      border-radius: 6px;
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.8rem;
+    }
+    .alert-red { background: #fef2f2; border: 1px solid #fecaca; }
+    .alert-yellow { background: #fffbeb; border: 1px solid #fde68a; }
+    .alert-green { background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .alert-blue { background: #eff6ff; border: 1px solid #bfdbfe; }
+    .alert-card .label { font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .alert-card.alert-red .label { color: var(--rojo); }
+    .alert-card.alert-yellow .label { color: var(--amarillo); }
+    .alert-card.alert-green .label { color: var(--verde); }
+    .alert-card.alert-blue .label { color: var(--azul); }
+
+    /* Monitoring schedule */
+    .monitor-list { font-family: 'Inter', system-ui, sans-serif; font-size: 0.8rem; }
+    .monitor-list li { padding: 0.3rem 0; border-bottom: 1px solid var(--borde); display: flex; gap: 0.75rem; }
+    .monitor-list li:last-child { border-bottom: none; }
+    .drug-name { font-weight: 700; min-width: 160px; color: var(--texto); }
+    .drug-schedule { color: var(--gris); }
+
+    /* References */
+    .references { margin-top: 2rem; border-top: 2px solid var(--azul); padding-top: 1rem; }
+    .references h2 { border-bottom: none; margin-top: 0; font-size: 0.95rem; }
+    .ref-list { font-family: 'Inter', system-ui, sans-serif; font-size: 0.75rem; color: var(--gris); }
+    .ref-list li { margin-bottom: 0.5rem; line-height: 1.4; padding-left: 0.25rem; }
+    .ref-list a { color: var(--azul); text-decoration: none; }
+    .ref-list a:hover { text-decoration: underline; }
+    .doi { font-style: italic; }
+
+    /* Footer */
+    .doc-footer {
+      margin-top: 1.5rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--borde);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.72rem;
+      color: var(--gris);
+      text-align: center;
+    }
+
+    /* Print styles */
+    @media print {
+      .print-bar { display: none !important; }
+      body { padding: 1cm 1.5cm; max-width: none; }
+      h2 { page-break-after: avoid; }
+      .evidence { page-break-inside: avoid; }
+      table { page-break-inside: avoid; }
+      .references { page-break-before: always; }
+      a { color: var(--texto) !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="print-bar">
+    <span>Documento de consulta interno · Plataforma Cardio-Oncología</span>
+    <button class="print-btn" onclick="window.print()">⬇ Descargar / Imprimir PDF</button>
+  </div>
+
+  <!-- Header -->
+  <div class="doc-header">
+    <div class="tag">Documento de Evidencia Científica · v1.0 · Mayo 2026</div>
+    <h1>Justificación Científica para la Implementación de una Plataforma Digital de Cardio-Oncología</h1>
+    <div class="subtitle">Evidencia clínica que respalda las 5 fases de desarrollo del sistema de seguimiento</div>
+    <div class="meta">
+      Plataforma: Seguimiento Cardio-Oncológico EPA Bienestar &nbsp;·&nbsp;
+      Marco normativo principal: Guías ESC 2022 de Cardio-Oncología &nbsp;·&nbsp;
+      Nivel de evidencia: Basado en Clase I–II ESC / Grado A–B
+    </div>
+  </div>
+
+  <!-- Resumen ejecutivo -->
+  <div class="resumen">
+    <strong>Resumen ejecutivo.</strong> La Cardio-Oncología emerge como disciplina crítica ante el incremento de la supervivencia oncológica y el consecuente aumento de cardiotoxicidad por tratamientos del cáncer. Las <strong>Guías ESC 2022</strong> (Lyon AR et al., Eur Heart J 2022) establecen por primera vez un marco unificado de estratificación de riesgo, monitoreo estructurado y umbrales de acción clínica. Este documento fundamenta las cinco fases de desarrollo de la plataforma digital de seguimiento, demostrando que su implementación no es una mejora cosmética sino una <strong>necesidad clínica basada en evidencia</strong> para reducir la morbimortalidad cardiovascular en el paciente oncológico.
+  </div>
+
+  <!-- Sección 0: Marco general -->
+  <h2>Marco Regulatorio y Científico de Referencia</h2>
+
+  <p>En 2022, la Sociedad Europea de Cardiología (ESC) publicó las primeras guías dedicadas exclusivamente a la Cardio-Oncología <sup>[1]</sup>, desarrolladas en colaboración con la European Hematology Association (EHA), la European Society for Therapeutic Radiology and Oncology (ESTRO) y la International Cardio-Oncology Society (IC-OS). Estas guías reemplazan y superan el Position Paper de 2016 <sup>[2]</sup>, incorporando el concepto de <em>Toxicidad Cardiovascular por Cáncer</em> (CTx) como entidad diagnóstica con criterios operacionales precisos.</p>
+
+  <p>Las guías definen CTx como la aparición de nueva disfunción ventricular (caída de FEVI ≥10 puntos porcentuales hasta &lt;50%), arritmias, enfermedad coronaria, hipertensión, tromboembolia, miocarditis u otras complicaciones directamente atribuibles al tratamiento oncológico. Esta definición operativa es la base para los umbrales de alerta automatizados de la Fase 3.</p>
+
+  <div class="evidence">
+    <strong>Referencia clave [1]:</strong> Lyon AR, et al. "2022 ESC Guidelines on cardio-oncology." <em>Eur Heart J.</em> 2022;43(41):4229–4361.
+    <span class="doi">DOI: <a href="https://doi.org/10.1093/eurheartj/ehac244" target="_blank">10.1093/eurheartj/ehac244</a></span> —
+    Guía completa disponible en: <a href="https://www.escardio.org/Guidelines/Clinical-Practice-Guidelines/Cardio-Oncology-Guidelines" target="_blank">escardio.org</a>
+  </div>
+
+  <!-- FASE 1 -->
+  <h2><span class="phase-badge">Fase 1</span> Dashboard Clínico con Semáforo de Riesgo y KPIs</h2>
+
+  <h3>Problema clínico que resuelve</h3>
+  <p>Los cardiólogos de Cardio-Oncología deben evaluar múltiples parámetros heterogéneos (FEVI, biomarcadores, tipo de droga oncológica, dosis acumulada, riesgo basal) en intervalos de tiempo muy reducidos durante la consulta. La fragmentación de estos datos entre sistemas aumenta el riesgo de errores de omisión y retrasa la toma de decisiones clínicas críticas.</p>
+
+  <h3>Evidencia que respalda la visualización jerarquizada</h3>
+  <p>Un estudio seminal de <strong>Cardinale et al.</strong> (Circulation, 2015) demostró que el inicio precoz de tratamiento cardioprotector en pacientes con elevación de troponina post-quimioterapia —detectada mediante monitoreo sistemático— redujo significativamente la tasa de disfunción ventricular sostenida (0% vs. 43% en el grupo de detección tardía, p&lt;0,001) <sup>[5]</sup>. Esto implica que la identificación <em>visual e inmediata</em> del deterioro en el punto de atención es clínicamente determinante.</p>
+
+  <p>Las Guías ESC 2022 recomiendan explícitamente la estratificación del riesgo <em>antes de cada decisión terapéutica</em> y la visualización del estado de riesgo como parte del flujo clínico estándar <sup>[1, Sección 4]</sup>. El consenso ASE/EACVI para evaluación multimodal en oncología <sup>[11]</sup> establece que los reportes de imagen cardíaca deben integrarse con los datos clínicos en un formato que permita comparación seriada inmediata.</p>
+
+  <div class="evidence">
+    <strong>[5]</strong> Cardinale D, et al. "Early detection of anthracycline cardiotoxicity and improvement with heart failure therapy." <em>Circulation.</em> 2015;131(23):1981–1988.<br/>
+    <strong>[11]</strong> Plana JC, Galderisi M, Barac A, et al. "Expert consensus for multimodality imaging evaluation of adult patients during and after cancer therapy." <em>J Am Soc Echocardiogr.</em> 2014;27(9):911–939. <span class="doi">DOI: <a href="https://doi.org/10.1016/j.echo.2014.07.012" target="_blank">10.1016/j.echo.2014.07.012</a></span>
+  </div>
+
+  <!-- FASE 2 -->
+  <h2><span class="phase-badge">Fase 2</span> Score HFA-ICOS y Calendarios de Monitoreo Automatizados</h2>
+
+  <h3>El score HFA-ICOS de riesgo cardiovascular basal</h3>
+  <p>Las Guías ESC 2022 introducen formalmente el sistema de estratificación HFA-ICOS (Heart Failure Association – International Cardio-Oncology Society), que clasifica a cada paciente antes de iniciar tratamiento oncológico en cuatro categorías de riesgo cardiovascular <sup>[1, Sección 4.1]</sup>:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Nivel</th>
+        <th>Criterios principales</th>
+        <th>Acción clínica</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="risk-low">BAJO</span></td>
+        <td>Sin factores de riesgo CV, FEVI normal, sin cardiopatía previa</td>
+        <td>Continuar con monitoreo estándar</td>
+      </tr>
+      <tr>
+        <td><span class="risk-mod">MODERADO</span></td>
+        <td>1–2 factores de riesgo CV, HTA controlada, sin cardiopatía establecida</td>
+        <td>Optimizar factores de riesgo; monitoreo estándar con mayor vigilancia</td>
+      </tr>
+      <tr>
+        <td><span class="risk-high">ALTO</span></td>
+        <td>≥3 factores de riesgo, DM, enfermedad CV previa documentada</td>
+        <td>Equipo multidisciplinario obligatorio; monitoreo intensivo</td>
+      </tr>
+      <tr>
+        <td><span class="risk-vhigh">MUY ALTO</span></td>
+        <td>IC establecida, FEVI &lt;50% previa, IAM reciente, arritmia grave</td>
+        <td>Discusión caso a caso; posible modificación de protocolo oncológico</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Calendarios de monitoreo por tipo de tratamiento</h3>
+  <p>Las Guías ESC 2022 establecen protocolos de vigilancia específicos por clase de droga <sup>[1, Secciones 5–9]</sup>. El incumplimiento de estos intervalos se asocia con detección tardía de CTx y peor pronóstico <sup>[8]</sup>:</p>
+
+  <ul class="monitor-list">
+    <li><span class="drug-name">Antraciclinas</span><span class="drug-schedule">Basal: Eco + Troponina + NT-proBNP + ECG · Durante: Eco en dosis acumulada clave (200, 300 mg/m²) · Post: Eco a 3 y 12 meses</span></li>
+    <li><span class="drug-name">Trastuzumab / HER2</span><span class="drug-schedule">Basal: FEVI · Durante: Eco cada 3 meses · Post: Eco a los 12 meses</span></li>
+    <li><span class="drug-name">Inhibidores Checkpoint</span><span class="drug-schedule">Basal: ECG + Troponina + BNP · Durante: Troponina + BNP antes de cada ciclo · Alerta: Troponina elevada → urgencia cardíaca</span></li>
+    <li><span class="drug-name">Anti-VEGF</span><span class="drug-schedule">Basal: TA + ECG + FEVI + Troponina · Durante: TA cada visita, FEVI cada 3 meses</span></li>
+    <li><span class="drug-name">BCR-ABL (TKI)</span><span class="drug-schedule">Basal: Evaluación CV completa · Riesgo tardío de enfermedad coronaria; seguimiento aterosclerótico</span></li>
+    <li><span class="drug-name">Radioterapia mediastinal</span><span class="drug-schedule">Basal completo · Post: ECG anual, Eco cada 5 años por décadas</span></li>
+  </ul>
+
+  <div class="evidence">
+    <strong>[8]</strong> Virani SA, Dent S, Brezden-Masley C, et al. "Canadian Cardiovascular Society Guidelines for Evaluation and Management of Cardiovascular Complications of Cancer Therapy." <em>Can J Cardiol.</em> 2016;32(7):831–841. <span class="doi">DOI: <a href="https://doi.org/10.1016/j.cjca.2016.04.001" target="_blank">10.1016/j.cjca.2016.04.001</a></span>
+  </div>
+
+  <!-- FASE 3 -->
+  <h2><span class="phase-badge">Fase 3</span> Alertas Automáticas por Biomarcadores y Umbrales Clínicos</h2>
+
+  <h3>Umbrales validados para disparo de alertas</h3>
+  <p>La evidencia respalda inequívocamente el uso de biomarcadores cardíacos en la detección precoz de CTx. <strong>Cardinale et al.</strong> demostraron que la elevación de troponina I post-quimioterapia predice disfunción ventricular con sensibilidad del 73% y especificidad del 84%, con un valor predictivo negativo del 93% <sup>[6]</sup>. Las Guías ESC 2022 incorporan estos hallazgos para definir umbrales de acción <sup>[1, Sección 4.3]</sup>:</p>
+
+  <div class="alert-grid">
+    <div class="alert-card alert-red">
+      <div class="label">🔴 Alerta Roja — Acción Inmediata</div>
+      FEVI caída ≥10 pp hasta &lt;50% · QTc &gt;500 ms · Troponina nueva elevación + síntomas (miocarditis)
+    </div>
+    <div class="alert-card alert-yellow">
+      <div class="label">🟡 Alerta Amarilla — Vigilancia Estrecha</div>
+      FEVI caída ≥15% desde basal (aunque &gt;50%) · QTc entre 480–500 ms · NT-proBNP &gt;125 pg/mL de novo
+    </div>
+    <div class="alert-card alert-blue">
+      <div class="label">🔵 Marcador de Monitoreo</div>
+      Troponina sobre LSN sin síntomas · NT-proBNP en ascenso progresivo · Cualquier cambio nuevo en ECG
+    </div>
+    <div class="alert-card alert-green">
+      <div class="label">🟢 Estable — Rutina</div>
+      FEVI ≥50% sin cambio significativo · Troponina y BNP normales · QTc &lt;480 ms · ECG sin cambios
+    </div>
+  </div>
+
+  <h3>El caso especial: miocarditis por inhibidores de checkpoint inmune (ICI)</h3>
+  <p><strong>Johnson et al.</strong> (N Engl J Med, 2016) documentaron los primeros casos de miocarditis fulminante por terapia combinada con checkpoint inhibitors (nivolumab + ipilimumab), con mortalidad reportada del 25–50% en series posteriores <sup>[4]</sup>. Esta es la única urgencia oncológica-cardiológica con mortalidad comparable a un shock cardiogénico. Las Guías ESC 2022 recomiendan Clase I que cualquier elevación de troponina en un paciente con ICI sea tratada como urgencia hasta demostrar lo contrario <sup>[1, Sección 8]</sup>. El sistema de alertas automatizado es, en este contexto, literalmente una herramienta que salva vidas.</p>
+
+  <div class="evidence">
+    <strong>[4]</strong> Johnson DB, Balko JM, Compton ML, et al. "Fulminant Myocarditis with Combination Immune Checkpoint Blockade." <em>N Engl J Med.</em> 2016;375(18):1749–1755. <span class="doi">DOI: <a href="https://doi.org/10.1056/NEJMoa1609214" target="_blank">10.1056/NEJMoa1609214</a></span><br/>
+    <strong>[6]</strong> Cardinale D, Sandri MT, Martinoni A, et al. "Left ventricular dysfunction predicted by early troponin I release after high-dose chemotherapy." <em>J Am Coll Cardiol.</em> 2000;36(2):517–522. <span class="doi">DOI: <a href="https://doi.org/10.1016/s0735-1097(00)00748-x" target="_blank">10.1016/s0735-1097(00)00748-x</a></span>
+  </div>
+
+  <!-- FASE 4 -->
+  <h2><span class="phase-badge">Fase 4</span> Interconsulta Estructurada Multidisciplinaria</h2>
+
+  <h3>La brecha de comunicación Cardio-Onco</h3>
+  <p>El abordaje multidisciplinario no es una preferencia organizacional: es un estándar de cuidado con evidencia. Las Guías ESC 2022 recomiendan con Clase I que los pacientes con riesgo alto o muy alto sean evaluados por un <em>Cardio-Oncology Team</em> antes de iniciar el tratamiento <sup>[1, Sección 3.2]</sup>. El consenso ESMO 2020 <sup>[7]</sup> señala que la falta de comunicación estructurada entre oncólogos y cardiólogos es la causa más frecuente de subdiagnóstico y subtratamiento de la CTx.</p>
+
+  <p>Un módulo de interconsulta estructurada dentro de la plataforma —con campos estandarizados de solicitud, respuesta accionable y visibilidad compartida en tiempo real— permite eliminar este punto de falla crítico. La comunicación debe quedar registrada en el historial del paciente, trazable y auditable, cumpliendo los estándares de documentación clínica FHIR R4 sobre los que se construye esta plataforma.</p>
+
+  <div class="evidence">
+    <strong>[7]</strong> Curigliano G, Lenihan D, Fradley M, et al. "Management of cardiac disease in cancer patients throughout oncological treatment: ESMO consensus recommendations." <em>Ann Oncol.</em> 2020;31(2):171–190. <span class="doi">DOI: <a href="https://doi.org/10.1016/j.annonc.2019.10.023" target="_blank">10.1016/j.annonc.2019.10.023</a></span>
+  </div>
+
+  <!-- FASE 5 -->
+  <h2><span class="phase-badge">Fase 5</span> Dosis Acumulada de Antraciclinas y Seguimiento de Sobrevivientes</h2>
+
+  <h3>El riesgo acumulado por antraciclinas</h3>
+  <p><strong>Swain et al.</strong> (Cancer, 2003) establecieron la relación dosis-respuesta definitiva entre doxorrubicina y cardiotoxicidad en un análisis de 630 pacientes: la incidencia de insuficiencia cardíaca congestiva fue del 5% con dosis acumulada de 400 mg/m², 26% con 550 mg/m² y 48% con 700 mg/m² <sup>[9]</sup>. Esta evidencia fundamenta los umbrales de alerta por dosis acumulada y la indicación de dexrazoxane en pacientes de alto riesgo conforme las Guías ESC 2022 <sup>[1, Sección 5.2]</sup>.</p>
+
+  <h3>Cardiotoxicidad tardía en sobrevivientes</h3>
+  <p><strong>Herrmann et al.</strong> (Mayo Clin Proc, 2014) documentaron que la cardiotoxicidad por antraciclinas puede presentarse hasta 20 años después de completado el tratamiento, siendo subclínica en su inicio y progresiva sin vigilancia activa <sup>[10]</sup>. Las Guías ESC 2022 establecen protocolos de seguimiento diferenciados para sobrevivientes oncológicos con exposición previa a drogas cardiotóxicas, incluyendo ecocardiograma basal post-tratamiento y seguimiento cardiovascular periódico a largo plazo <sup>[1, Sección 10]</sup>.</p>
+
+  <p>Este grupo de pacientes es el más vulnerable a la pérdida de seguimiento: con frecuencia no tienen oncólogo activo y no reconocen la necesidad de control cardiológico. Un módulo específico en la plataforma —que identifique activamente a los sobrevivientes con exposición previa de alto riesgo y genere recordatorios de seguimiento— cubre una necesidad clínica crítica sin equivalente en los sistemas de gestión médica convencionales.</p>
+
+  <div class="evidence">
+    <strong>[9]</strong> Swain SM, Whaley FS, Ewer MS. "Congestive heart failure in patients treated with doxorubicin: a retrospective analysis of three trials." <em>Cancer.</em> 2003;97(11):2869–2879. <span class="doi">DOI: <a href="https://doi.org/10.1002/cncr.11407" target="_blank">10.1002/cncr.11407</a></span><br/>
+    <strong>[10]</strong> Herrmann J, Lerman A, Sandhu NP, et al. "Evaluation and management of patients with heart disease and cancer: cardio-oncology." <em>Mayo Clin Proc.</em> 2014;89(9):1287–1306. <span class="doi">DOI: <a href="https://doi.org/10.1016/j.mayocp.2014.05.013" target="_blank">10.1016/j.mayocp.2014.05.013</a></span>
+  </div>
+
+  <!-- Conclusiones -->
+  <h2>Conclusiones</h2>
+  <p>La implementación de esta plataforma digital no responde a una iniciativa tecnológica aislada, sino a un imperativo clínico respaldado por la máxima autoridad normativa en cardiología europea (ESC 2022) y por décadas de evidencia sobre cardiotoxicidad oncológica. Las cinco fases propuestas operacionalizan, en formato digital e interoperable, las recomendaciones que los cardiólogos de Cardio-Oncología ya están obligados a seguir: estratificar el riesgo basal, monitorear con intervalos definidos, reaccionar ante umbrales de biomarcadores y comunicarse con el equipo oncológico. La plataforma transforma ese mandato clínico en un flujo de trabajo eficiente, trazable y centrado en el paciente.</p>
+
+  <!-- Referencias -->
+  <div class="references">
+    <h2>Referencias Bibliográficas</h2>
+    <ol class="ref-list">
+      <li>[1] Lyon AR, López-Fernández T, Couch LS, et al. "2022 ESC Guidelines on cardio-oncology." <em>Eur Heart J.</em> 2022;43(41):4229–4361. <a href="https://doi.org/10.1093/eurheartj/ehac244" target="_blank">DOI: 10.1093/eurheartj/ehac244</a> · <a href="https://www.escardio.org/Guidelines/Clinical-Practice-Guidelines/Cardio-Oncology-Guidelines" target="_blank">escardio.org</a></li>
+      <li>[2] Zamorano JL, Lancellotti P, Rodriguez Muñoz D, et al. "2016 ESC Position Paper on cancer treatments and cardiovascular toxicity." <em>Eur Heart J.</em> 2016;37(36):2768–2801. <a href="https://doi.org/10.1093/eurheartj/ehw211" target="_blank">DOI: 10.1093/eurheartj/ehw211</a></li>
+      <li>[3] Moslehi JJ. "Cardiovascular Toxic Effects of Targeted Cancer Therapies." <em>N Engl J Med.</em> 2016;375(15):1457–1467. <a href="https://doi.org/10.1056/NEJMra1100265" target="_blank">DOI: 10.1056/NEJMra1100265</a></li>
+      <li>[4] Johnson DB, Balko JM, Compton ML, et al. "Fulminant Myocarditis with Combination Immune Checkpoint Blockade." <em>N Engl J Med.</em> 2016;375(18):1749–1755. <a href="https://doi.org/10.1056/NEJMoa1609214" target="_blank">DOI: 10.1056/NEJMoa1609214</a></li>
+      <li>[5] Cardinale D, Colombo A, Bacchiani G, et al. "Early detection of anthracycline cardiotoxicity and improvement with heart failure therapy." <em>Circulation.</em> 2015;131(23):1981–1988. <a href="https://doi.org/10.1161/CIRCULATIONAHA.114.013468" target="_blank">DOI: 10.1161/CIRCULATIONAHA.114.013468</a></li>
+      <li>[6] Cardinale D, Sandri MT, Martinoni A, et al. "Left ventricular dysfunction predicted by early troponin I release after high-dose chemotherapy." <em>J Am Coll Cardiol.</em> 2000;36(2):517–522. <a href="https://doi.org/10.1016/s0735-1097(00)00748-x" target="_blank">DOI: 10.1016/s0735-1097(00)00748-x</a></li>
+      <li>[7] Curigliano G, Lenihan D, Fradley M, et al. "Management of cardiac disease in cancer patients throughout oncological treatment: ESMO consensus recommendations." <em>Ann Oncol.</em> 2020;31(2):171–190. <a href="https://doi.org/10.1016/j.annonc.2019.10.023" target="_blank">DOI: 10.1016/j.annonc.2019.10.023</a></li>
+      <li>[8] Virani SA, Dent S, Brezden-Masley C, et al. "Canadian Cardiovascular Society Guidelines for Evaluation and Management of Cardiovascular Complications of Cancer Therapy." <em>Can J Cardiol.</em> 2016;32(7):831–841. <a href="https://doi.org/10.1016/j.cjca.2016.04.001" target="_blank">DOI: 10.1016/j.cjca.2016.04.001</a></li>
+      <li>[9] Swain SM, Whaley FS, Ewer MS. "Congestive heart failure in patients treated with doxorubicin: a retrospective analysis of three trials." <em>Cancer.</em> 2003;97(11):2869–2879. <a href="https://doi.org/10.1002/cncr.11407" target="_blank">DOI: 10.1002/cncr.11407</a></li>
+      <li>[10] Herrmann J, Lerman A, Sandhu NP, et al. "Evaluation and management of patients with heart disease and cancer: cardio-oncology." <em>Mayo Clin Proc.</em> 2014;89(9):1287–1306. <a href="https://doi.org/10.1016/j.mayocp.2014.05.013" target="_blank">DOI: 10.1016/j.mayocp.2014.05.013</a></li>
+      <li>[11] Plana JC, Galderisi M, Barac A, et al. "Expert consensus for multimodality imaging evaluation of adult patients during and after cancer therapy: a report from the ASE and EACVI." <em>J Am Soc Echocardiogr.</em> 2014;27(9):911–939. <a href="https://doi.org/10.1016/j.echo.2014.07.012" target="_blank">DOI: 10.1016/j.echo.2014.07.012</a></li>
+      <li>[12] Armenian SH, Lacchetti C, Barac A, et al. "Prevention and Monitoring of Cardiac Dysfunction in Survivors of Adult Cancers: ASCO Clinical Practice Guideline." <em>J Clin Oncol.</em> 2017;35(8):893–911. <a href="https://doi.org/10.1200/JCO.2016.70.5400" target="_blank">DOI: 10.1200/JCO.2016.70.5400</a></li>
+      <li>[13] Pudil R, Mueller C, Čelutkienė J, et al. "Role of serum biomarkers in cancer patients receiving cardiotoxic cancer therapies: a position statement from the HFA of the ESC." <em>Eur J Heart Fail.</em> 2022;24(3):406–424. <a href="https://doi.org/10.1002/ejhf.2371" target="_blank">DOI: 10.1002/ejhf.2371</a></li>
+      <li>[14] Thavendiranathan P, Grant AD, Negishi T, et al. "Reproducibility of echocardiographic techniques for sequential assessment of left ventricular ejection fraction and volumes." <em>J Am Coll Cardiol.</em> 2012;59(21):1895–1902. <a href="https://doi.org/10.1016/j.jacc.2011.11.085" target="_blank">DOI: 10.1016/j.jacc.2011.11.085</a></li>
+      <li>[15] Alexandre J, Cautela J, Ederhy S, et al. "Cardiovascular Toxicity Related to Cancer Treatment: A Pragmatic Approach to the American and European Cardio-Oncology Guidelines." <em>J Am Heart Assoc.</em> 2020;9(18):e018403. <a href="https://doi.org/10.1161/JAHA.120.018403" target="_blank">DOI: 10.1161/JAHA.120.018403</a></li>
+    </ol>
+  </div>
+
+  <div class="doc-footer">
+    Plataforma Cardio-Oncología · EPA Bienestar · Documento de uso interno · Actualización recomendada con cada nueva edición de las Guías ESC
+  </div>
+
+</body>
+</html>

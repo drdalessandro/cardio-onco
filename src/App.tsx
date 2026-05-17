@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright Orangebot, Inc. and Medplum contributors
 // SPDX-License-Identifier: Apache-2.0
 import { AppShell, ErrorBoundary, Loading, Logo, useMedplum, useMedplumProfile } from '@medplum/react';
-import { IconClipboardHeart, IconClipboardList, IconUser } from '@tabler/icons-react';
+import { IconClipboardHeart, IconClipboardList, IconFileText, IconUser } from '@tabler/icons-react';
 import { Suspense } from 'react';
 import type { JSX } from 'react';
 import { Route, Routes } from 'react-router';
@@ -36,6 +36,16 @@ export function App(): JSX.Element | null {
               icon: <IconClipboardHeart />,
               label: 'Mis Encuentros',
               href: `/Encounter?participant=Practitioner/${profile?.id}`,
+            },
+          ],
+        },
+        {
+          title: 'Recursos',
+          links: [
+            {
+              icon: <IconFileText />,
+              label: 'Evidencia Científica',
+              href: '/evidencia-cientifica-plataforma.html',
             },
           ],
         },
