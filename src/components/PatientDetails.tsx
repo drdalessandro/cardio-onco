@@ -14,6 +14,7 @@ import { CardiotoxicityDashboard } from './CardiotoxicityDashboard';
 import { ClinicalImpressionDisplay } from './ClinicalImpressionDisplay';
 import { BiomarkerAlerts } from './BiomarkerAlerts';
 import { HFAICOSCalculator } from './HFAICOSCalculator';
+import { InterconsultaCardioOnco } from './InterconsultaCardioOnco';
 import { MonitoringSchedule } from './MonitoringSchedule';
 import { PatientObservations } from './PatientObservations';
 
@@ -37,6 +38,7 @@ export function PatientDetails(props: PatientDetailsProps): JSX.Element {
     ['cardiotoxicity', 'Cardiotoxicidad'],
     ['monitoreo', 'Monitoreo ESC'],
     ['alertas', 'Alertas'],
+    ['interconsulta', 'Interconsulta'],
   ];
   // Get the current tab
   const tab = window.location.pathname.split('/').pop();
@@ -122,6 +124,11 @@ export function PatientDetails(props: PatientDetailsProps): JSX.Element {
         <Tabs.Panel value="alertas">
           <Stack p="xs">
             <BiomarkerAlerts patient={props.patient} />
+          </Stack>
+        </Tabs.Panel>
+        <Tabs.Panel value="interconsulta">
+          <Stack p="xs">
+            <InterconsultaCardioOnco patient={props.patient} />
           </Stack>
         </Tabs.Panel>
       </Tabs>
