@@ -5,6 +5,7 @@ import { IconClipboardHeart, IconClipboardList, IconFileText, IconUser } from '@
 import { Suspense } from 'react';
 import type { JSX } from 'react';
 import { Route, Routes } from 'react-router';
+import { DashboardPage } from './pages/DashboardPage';
 import { EncounterPage } from './pages/EncounterPage';
 import { LandingPage } from './pages/LandingPage';
 import { PatientPage } from './pages/PatientPage';
@@ -54,7 +55,7 @@ export function App(): JSX.Element | null {
       <ErrorBoundary>
         <Suspense fallback={<Loading />}>
           <Routes>
-            <Route path="/" element={profile ? <SearchPage /> : <LandingPage />} />
+            <Route path="/" element={profile ? <DashboardPage /> : <LandingPage />} />
             <Route path="/signin" element={<SignInPage />} />
             <Route path="/Patient/:id">
               <Route index element={<PatientPage />} />
