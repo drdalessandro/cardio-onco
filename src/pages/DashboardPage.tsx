@@ -16,9 +16,9 @@ import {
   Title,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import type { Bundle, Condition, Encounter, MedicationRequest, Observation, Patient } from '@medplum/fhirtypes';
+import type { Bundle, Condition, Encounter, Flag, MedicationRequest, Observation, Patient } from '@medplum/fhirtypes';
 import { useMedplum, useMedplumProfile } from '@medplum/react';
-import { IconAlertTriangle, IconCalendar, IconEye, IconPill, IconPlus, IconUser, IconUsers } from '@tabler/icons-react';
+import { IconAlertTriangle, IconCalendar, IconEye, IconPill, IconPlus, IconShieldX, IconUser, IconUsers } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
 import { Link, useNavigate } from 'react-router';
@@ -200,6 +200,11 @@ function KpiCard({ label, value, sublabel, icon, color, loading }: KpiCardProps)
 // ---------------------------------------------------------------------------
 // Dashboard state
 // ---------------------------------------------------------------------------
+interface ActiveFlagRow {
+  flag: Flag;
+  patient: Patient | undefined;
+}
+
 interface DashboardData {
   encounters: Encounter[];
   patientMap: Map<string, Patient>;
@@ -208,6 +213,8 @@ interface DashboardData {
   totalPatients: number;
   todayEncounterCount: number;
   activeOncologyMedCount: number;
+  // Phase 3
+  activeFlags: ActiveFlagRow[];
 }
 
 // ---------------------------------------------------------------------------
@@ -318,21 +325,25 @@ export function DashboardPage(): JSX.Element {
           }
         }
 
-        // 5. Total patient count
-        const patientCountBundle = await medplum.search('Patient', {
-          _count: '0',
-          _summary: 'count',
-        }) as Bundle;
-        const totalPatients = patientCountBundle.total ?? 0;
-
-        // 6. Today's encounter count
+        // 5–7. Parallel: total patients, today encounters, active Flags
         const todayISO = new Date().toISOString().slice(0, 10);
-        const todayBundle = await medplum.search('Encounter', {
-          date: `ge${todayISO}`,
-          _count: '0',
-          _summary: 'count',
-        }) as Bundle;
+        const [patientCountBundle, todayBundle, flagBundle] = await Promise.all([
+          medplum.search('Patient', { _count: '0', _summary: 'count' }) as Promise<Bundle>,
+          medplum.search('Encounter', { date: `ge${todayISO}`, _count: '0', _summary: 'count' }) as Promise<Bundle>,
+          medplum.search('Flag', { status: 'active', _count: '50', _include: 'Flag:subject' }) as Promise<Bundle>,
+        ]);
+
+        const totalPatients      = patientCountBundle.total ?? 0;
         const todayEncounterCount = todayBundle.total ?? 0;
+
+        // Build Flag rows with linked patients
+        const flagResources = extractFromBundle<Flag>(flagBundle, 'Flag');
+        const flagPatients  = extractFromBundle<Patient>(flagBundle, 'Patient');
+        const flagPatientMap = new Map(flagPatients.map((p) => [p.id ?? '', p]));
+        const activeFlags: ActiveFlagRow[] = flagResources.map((flag) => ({
+          flag,
+          patient: flagPatientMap.get(flag.subject?.reference?.replace('Patient/', '') ?? ''),
+        }));
 
         setData({
           encounters,
@@ -342,6 +353,7 @@ export function DashboardPage(): JSX.Element {
           totalPatients,
           todayEncounterCount,
           activeOncologyMedCount,
+          activeFlags,
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
@@ -353,11 +365,11 @@ export function DashboardPage(): JSX.Element {
     loadDashboard().catch(console.error);
   }, [medplum]);
 
-  // Derived KPI: critical alerts
+  // Derived KPI: Flags take precedence; fall back to LVEF-computed count
   const criticalAlerts = data
-    ? Array.from(data.lvefByPatient.entries()).filter(
-        ([, obs]) => computeESCRisk(obs) === 'red'
-      ).length
+    ? data.activeFlags.length > 0
+      ? data.activeFlags.length
+      : Array.from(data.lvefByPatient.entries()).filter(([, obs]) => computeESCRisk(obs) === 'red').length
     : 0;
 
   return (
@@ -417,6 +429,40 @@ export function DashboardPage(): JSX.Element {
           loading={loading}
         />
       </SimpleGrid>
+
+      {/* Active Flags panel — only shown when Flags exist */}
+      {!loading && data && data.activeFlags.length > 0 && (
+        <Paper radius="md" withBorder p="md">
+          <Group gap="xs" mb="sm">
+            <IconShieldX size={16} color="var(--mantine-color-red-6)" />
+            <Title order={5} c="red">Alertas Clínicas Activas</Title>
+            <Badge color="red" variant="filled" size="sm">{data.activeFlags.length}</Badge>
+          </Group>
+          <Stack gap="xs">
+            {data.activeFlags.slice(0, 5).map(({ flag, patient }) => {
+              const pid = flag.subject?.reference?.replace('Patient/', '');
+              const name = patient?.name?.[0]
+                ? [patient.name[0].given?.join(' '), patient.name[0].family].filter(Boolean).join(' ')
+                : 'Paciente';
+              return (
+                <Group key={flag.id} justify="space-between" style={{ borderBottom: '1px solid var(--mantine-color-gray-2)', paddingBottom: 6 }}>
+                  <div>
+                    <Text size="sm" fw={600}>{name}</Text>
+                    <Text size="xs" c="dimmed">{flag.code?.text ?? 'Alerta clínica'}</Text>
+                  </div>
+                  <Group gap="xs">
+                    {pid && (
+                      <ActionIcon size="sm" variant="subtle" color="blue" onClick={() => navigate(`/Patient/${pid}`)?.catch(console.error)} title="Ver paciente">
+                        <IconUser size={14} />
+                      </ActionIcon>
+                    )}
+                  </Group>
+                </Group>
+              );
+            })}
+          </Stack>
+        </Paper>
+      )}
 
       {/* Encounter table */}
       <div>
