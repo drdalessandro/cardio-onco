@@ -142,7 +142,7 @@ export function PatientDetails(props: PatientDetailsProps): JSX.Element {
         </Tabs.Panel>
         <Tabs.Panel value="resumen">
           <Stack p="xs">
-            <ResumenPDF patient={props.patient} />
+            <ResumenPdf patient={props.patient} />
           </Stack>
         </Tabs.Panel>
       </Tabs>
