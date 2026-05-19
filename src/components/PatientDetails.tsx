@@ -18,6 +18,7 @@ import { HFAICOSCalculator } from './HFAICOSCalculator';
 import { InterconsultaCardioOnco } from './InterconsultaCardioOnco';
 import { MonitoringSchedule } from './MonitoringSchedule';
 import { PatientObservations } from './PatientObservations';
+import { ResumenPdf } from './ResumenPdf';
 
 interface PatientDetailsProps {
   patient: Patient;
@@ -41,6 +42,7 @@ export function PatientDetails(props: PatientDetailsProps): JSX.Element {
     ['alertas', 'Alertas'],
     ['interconsulta', 'Interconsulta'],
     ['sobrevivientes', 'Sobrevivientes'],
+    ['resumen', 'Resumen PDF'],
   ];
   // Get the current tab
   const tab = window.location.pathname.split('/').pop();
@@ -136,6 +138,11 @@ export function PatientDetails(props: PatientDetailsProps): JSX.Element {
         <Tabs.Panel value="sobrevivientes">
           <Stack p="xs">
             <AnthracyclineSurvivorDashboard patient={props.patient} />
+          </Stack>
+        </Tabs.Panel>
+        <Tabs.Panel value="resumen">
+          <Stack p="xs">
+            <ResumenPDF patient={props.patient} />
           </Stack>
         </Tabs.Panel>
       </Tabs>
