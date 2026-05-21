@@ -1,94 +1,290 @@
-<h1 align="center">Medplum Charting Demo</h1>
-<p align="center">A starter application for building a charting app on Medplum.</p>
+<h1 align="center">
+  <br/>
+  🫀 Cardio Onco
+  <br/>
+</h1>
+
 <p align="center">
-<a href="https://github.com/medplum/medplum-hello-world/blob/main/LICENSE.txt">
-    <img src="https://img.shields.io/badge/license-Apache-blue.svg" />
+  <strong>Open-source clinical platform for Cardio-Oncology follow-up</strong><br/>
+  Built on FHIR R4 · ESC 2022 Guidelines · Designed for real clinical environments
+</p>
+
+<p align="center">
+  <a href="https://cardio-onco.epa-bienestar.com.ar">
+    <img src="https://img.shields.io/badge/Live%20Demo-cardio--onco.epa--bienestar.com.ar-0ea5e9?style=for-the-badge&logo=vercel" />
   </a>
 </p>
 
-This example app demonstrates the following:
+<p align="center">
+  <img src="https://img.shields.io/badge/FHIR-R4-orange?style=flat-square&logo=hl7" />
+  <img src="https://img.shields.io/badge/Medplum-5.0-blueviolet?style=flat-square" />
+  <img src="https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react" />
+  <img src="https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square&logo=typescript" />
+  <img src="https://img.shields.io/badge/License-Apache%202.0-green?style=flat-square" />
+</p>
 
-- Managing the lifecycle of an encounter and its corresponding notes.
-- Creating and displaying Encounter Notes using the [`ClinicalImpression`](/docs/api/fhir/resources/clinicalimpression) resource.
-- Converting notes into structured data ([`Observations`](/docs/api/fhir/resources/observation) and [`Conditions`](/docs/api/fhir/resources/condition)) for easy retrieval and longitudinal tracking.
-- Using [Medplum React Components](https://storybook.medplum.com/?path=/docs/medplum-introduction--docs) to display a chart that provides visibility on a patient and their medical encounters.
-  - More information on a [charting experience](https://www.medplum.com/docs/charting)
+---
 
-### Code Organization
+## What is Cardio Onco?
 
-This repo is organized into two main directories: `src` and `data`.
+**Cardio Onco** is a specialized clinical decision-support platform for **cardio-oncology teams**. It enables real-time monitoring of cancer patients undergoing cardiotoxic therapies — anthracyclines, trastuzumab, bevacizumab, and more — following the **ESC 2022 Cardio-Oncology Guidelines**.
 
-The `src` directory contains the React app that implements the charting UX. In addition, it contains a `bots` directory, which has [Medplum Bots](/packages/docs/docs/bots/bot-basics.md) to implement the parsing of notes into structured data.
+Built on top of [Medplum](https://www.medplum.com/), an open-source FHIR-native EHR backend, it runs entirely on open standards: every data point is a FHIR resource, every workflow is reproducible.
 
-The `data` directory contains data that can be uploaded for use in the demo. The `example` directory contains data that is meant to be used for testing and learning, while the `core` directory contains resources, terminologies, and more that are necessary to use the demo.
+> Developed at **Hospital Municipal de Oncología Marie Curie**, Argentina.  
+> Designed by clinicians, for clinicians.
 
-### Components of the Encounter Chart
+---
 
-The Encounter Chart has 3 distinct panels
+## ✨ Key Features
 
-1. Clinical Chart
-   The left panel shows the patient history and their status. Notable information in the clinical chart includes the following Resources:
+### 🔴 Cardiotoxicity Risk Dashboard
+Real-time LVEF tracking and risk stratification per **ESC 2022**:
 
-   - Patient Information
-   - Upcoming Appointments
-   - Documented Visits
-   - List of Allergies
-   - List of Problems
-   - Medication Requests
-   - Smoking Status
-   - Vitals
+| Status | Criteria | Action |
+|--------|----------|--------|
+| 🔴 High risk | LVEF drop ≥10 pp → <50% | Urgent cardiology referral |
+| 🟡 Moderate | LVEF drop ≥10 pp (LVEF ≥50%) or 50–54% | Close monitoring |
+| 🟢 Low risk | LVEF ≥55%, <10 pp drop | Continue treatment |
 
-2. Encounter Note
-   The center panel allows users to create a note or view it if it already exists. The note allows users to:
+### 📊 Longitudinal Observation Graphs
+Interactive Chart.js visualizations for LVEF, blood pressure, heart rate, weight, BMI, and other LOINC-coded observations over time.
 
-- Enter objective data about the condition relevant to the encounter.
-- Enter subjective data about symptoms that the patient is experiencing.
-- Add their own free text notes about the encounter.
-- Store contextualizing data such as the date of the encounter.
+### 🧮 HFA-ICOS Calculator
+Automated 5-year heart failure survival prediction, pre-filled from FHIR `Condition` resources. Includes the full **Monitoring Schedule** per ESC risk group.
 
-3. Encounter Actions
-   The right-hand panel allows users to make changes to the encounter, including editing the type of encounter.
+### 🚨 Biomarker Alerts
+Threshold-based clinical flag system for troponin, BNP, NT-proBNP, and other cardiac biomarkers. Surfaces active `Flag` resources directly on the patient dashboard.
 
-### Getting Started
+### 💊 Anthracycline Survivor Follow-up
+Dedicated long-term monitoring dashboard for survivors of anthracycline-based regimens, with cumulative dose tracking and FHIR `MedicationAdministration` history.
 
-If you haven't already done so, follow the instructions in [this tutorial](https://www.medplum.com/docs/tutorials/register) to register a Medplum project to store your data.
+### 📋 Structured Cardio-Oncology Referral
+Clinical referral workflow (Interconsulta) modeled as FHIR `ServiceRequest`, with pre-structured recommendations aligned to cardio-oncology protocols.
 
-[Fork](https://github.com/medplum/medplum-chart-demo/fork) and clone the repo.
+### 📤 FHIR Export & Download
+One-click patient data export from the patient record:
+- **FHIR Everything** — full FHIR R4 Bundle (JSON)
+- **C-CDA** — HL7 Clinical Document Architecture (XML)
+- **C-CDA Referral** — Structured referral document (XML)
+- Optional **start/end date** filters for time-bounded exports
 
-If you want to change any environment variables from the defaults, copy the `.env.defaults` file to `.env`
+### 🗂️ Complete Clinical Chart
+Full Medplum-powered patient chart: encounter notes, SOAP format, clinical impressions, medication requests, conditions (ICD-10), allergy list, and version history.
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│                   Browser (React 19)             │
+│                                                  │
+│  ┌─────────────┐  ┌──────────────────────────┐  │
+│  │ Patient     │  │  Clinical Modules         │  │
+│  │ Chart       │  │  - CardiotoxicityDashboard│  │
+│  │ (Medplum    │  │  - HFAICOSCalculator      │  │
+│  │  React)     │  │  - BiomarkerAlerts        │  │
+│  │             │  │  - PatientObservations    │  │
+│  │             │  │  - AnthracyclineSurvivor  │  │
+│  │             │  │  - Interconsulta          │  │
+│  │             │  │  - Resumen / FHIR Export  │  │
+│  └──────┬──────┘  └────────────┬─────────────┘  │
+│         │                      │                 │
+└─────────┼──────────────────────┼─────────────────┘
+          │    FHIR R4 REST API  │
+          ▼                      ▼
+┌─────────────────────────────────────────────────┐
+│          Medplum Server (FHIR R4)                │
+│          https://api.epa-bienestar.com.ar        │
+│                                                  │
+│  Patient · Observation · Condition · Encounter   │
+│  MedicationRequest · ClinicalImpression · Flag   │
+│  ServiceRequest · DiagnosticReport · Questionnaire│
+└─────────────────────────────────────────────────┘
+```
+
+**Stack:**
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 19 + TypeScript + Vite 7 |
+| UI Components | Mantine 8 + Tabler Icons |
+| FHIR Client | Medplum Core 5.0 + Medplum React |
+| Charts | Chart.js 4 |
+| Backend | Medplum Server (self-hosted or cloud) |
+| Standard | HL7 FHIR R4 |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js ≥ 20
+- A running [Medplum](https://www.medplum.com/docs/self-hosting) instance (self-hosted or [cloud](https://app.medplum.com))
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/drdalessandro/cardio-onco.git
+cd cardio-onco
+```
+
+### 2. Configure environment
 
 ```bash
 cp .env.defaults .env
 ```
 
-And make the changes you need.
+Edit `.env` and set your Medplum instance:
 
-Next, install the dependencies.
+```env
+MEDPLUM_BASE_URI=https://api.epa-bienestar.com.ar   # or your own instance
+MEDPLUM_CLIENT_ID=your-client-id
+```
+
+### 3. Install dependencies
 
 ```bash
 npm install
 ```
 
-Then, build the bots
+### 4. Load reference data
+
+Upload terminologies, questionnaires, and ICD-10 conditions:
+
+```bash
+npm run upload:core
+```
+
+Optionally load example patient data:
+
+```bash
+npm run upload:example
+```
+
+### 5. Build and deploy bots
 
 ```bash
 npm run build:bots
+npm run deploy:bots
 ```
 
-Then, run the app
+### 6. Run locally
 
 ```bash
 npm run dev
 ```
 
-This app should run on `http://localhost:3000/`
+App runs at **http://localhost:3000** 🎉
 
-### About Medplum
+---
 
-[Medplum](https://www.medplum.com/) is an open-source, API-first EHR. Medplum makes it easy to build healthcare apps quickly with less code.
+## 🔧 Environment Variables
 
-Medplum supports self-hosting and provides a [hosted service](https://app.medplum.com/). Medplum Hello World uses the hosted service as a backend.
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MEDPLUM_BASE_URI` | Base URL of your Medplum FHIR server | `https://api.medplum.com/` |
+| `MEDPLUM_CLIENT_ID` | OAuth2 client ID for your Medplum project | — |
 
-- Read our [documentation](https://www.medplum.com/docs)
-- Browse our [react component library](https://storybook.medplum.com/)
-- Join our [Discord](https://discord.gg/medplum)
+---
+
+## 📁 Project Structure
+
+```
+cardio-onco/
+├── src/
+│   ├── components/
+│   │   ├── CardiotoxicityDashboard.tsx   # ESC 2022 risk stratification
+│   │   ├── HFAICOSCalculator.tsx         # 5-year HF survival + monitoring
+│   │   ├── BiomarkerAlerts.tsx           # Troponin / BNP threshold alerts
+│   │   ├── PatientObservations.tsx       # Longitudinal vitals & LVEF graphs
+│   │   ├── AnthracyclineSurvivorDashboard.tsx
+│   │   ├── InterconsultaCardioOnco.tsx   # FHIR ServiceRequest referral
+│   │   ├── Resumen.tsx                   # FHIR export (Everything / C-CDA)
+│   │   ├── ClinicalImpressionDisplay.tsx
+│   │   └── PatientDetails.tsx            # Main tabbed patient view
+│   ├── pages/
+│   ├── bots/                             # Medplum serverless bots
+│   └── App.tsx
+├── data/
+│   ├── core/                             # Terminologies, questionnaires
+│   └── example/                          # Demo patient data
+└── package.json
+```
+
+---
+
+## 🩺 Clinical Standards
+
+This application implements the following evidence-based guidelines:
+
+- **ESC 2022 Guidelines on Cardio-Oncology** — risk stratification, monitoring intervals, LVEF thresholds
+- **HFA-ICOS Risk Score** — 5-year heart failure prediction in cancer patients
+- **ICD-10 / SNOMED CT** — standardized disease coding
+- **LOINC** — standardized observation coding (LVEF `8806-2`, BP `85354-9`, troponin, BNP, etc.)
+- **HL7 FHIR R4** — interoperable data exchange
+- **C-CDA R2.1** — clinical document export
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome, especially from clinicians and health informaticists.
+
+```bash
+# Create your feature branch
+git checkout -b feature/my-clinical-feature
+
+# Commit your changes
+git commit -m "Add: my clinical feature"
+
+# Push and open a PR
+git push origin feature/my-clinical-feature
+```
+
+Please follow existing TypeScript and FHIR resource patterns. Clinical content changes should reference the relevant guideline or evidence source.
+
+---
+
+## 👥 Authors
+
+| Author | Role |
+|--------|------|
+| **Dr. Alejandro Sergio D'Alessandro** | Clinical design, cardio-oncology domain expertise |
+| **Claude Code** (Anthropic) | Software engineering, FHIR implementation |
+
+Built with ❤️ for patients and clinicians at **Hospital Municipal de Oncología Marie Curie**, Argentina.
+
+---
+
+## 📄 License
+
+Licensed under the [Apache License 2.0](LICENSE.txt).
+
+```
+Copyright 2025 Dr. Alejandro Sergio D'Alessandro
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+```
+
+---
+
+## 🔗 Resources
+
+- 📖 [Medplum Documentation](https://www.medplum.com/docs)
+- 🧩 [Medplum React Components](https://storybook.medplum.com/)
+- 💬 [Medplum Discord](https://discord.gg/medplum)
+- 🏥 [ESC 2022 Cardio-Oncology Guidelines](https://www.escardio.org/Guidelines/Clinical-Practice-Guidelines/Cardio-Oncology-Guidelines)
+- 🌐 [Live App](https://cardio-onco.epa-bienestar.com.ar)
+
+---
+
+<p align="center">
+  <sub>Built on open standards. Open to the world.</sub>
+</p>
