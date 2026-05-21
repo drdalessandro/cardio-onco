@@ -29,7 +29,7 @@
 
 **Cardio Onco** is a specialized clinical decision-support platform for **cardio-oncology teams**. It enables real-time monitoring of cancer patients undergoing cardiotoxic therapies — anthracyclines, trastuzumab, bevacizumab, and more — following the **ESC 2022 Cardio-Oncology Guidelines**.
 
-Built on top of [Medplum](https://www.medplum.com/), an open-source FHIR-native EHR backend, it runs entirely on open standards: every data point is a FHIR resource, every workflow is reproducible.
+Built on top of [Medplum AR](https://www.medplum.com.ar/), an open-source FHIR-native EHR backend, it runs entirely on open standards: every data point is a FHIR resource, every workflow is reproducible.
 
 > Developed at **Hospital Municipal de Oncología Marie Curie**, Argentina.  
 > Designed by clinicians, for clinicians.
@@ -122,7 +122,7 @@ Full Medplum-powered patient chart: encounter notes, SOAP format, clinical impre
 ### Prerequisites
 
 - Node.js ≥ 20
-- A running [Medplum](https://www.medplum.com/docs/self-hosting) instance (self-hosted or [cloud](https://app.medplum.com))
+- A running [Medplum AR](https://www.medplum.com.ar/docs/self-hosting) instance (self-hosted or [cloud](https://app.medplum.com.ar))
 
 ### 1. Clone the repo
 
@@ -185,7 +185,7 @@ App runs at **http://localhost:3000** 🎉
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `MEDPLUM_BASE_URI` | Base URL of your Medplum FHIR server | `https://api.medplum.com/` |
+| `MEDPLUM_BASE_URI` | Base URL of your Medplum FHIR server | `https://api.medplum.com.ar/` |
 | `MEDPLUM_CLIENT_ID` | OAuth2 client ID for your Medplum project | — |
 
 ---
@@ -277,9 +277,8 @@ You may obtain a copy of the License at
 
 ## 🔗 Resources
 
-- 📖 [Medplum Documentation](https://www.medplum.com/docs)
-- 🧩 [Medplum React Components](https://storybook.medplum.com/)
-- 💬 [Medplum Discord](https://discord.gg/medplum)
+- 📖 [Medplum Documentation](https://www.medplum.com.ar/docs)
+- 🧩 [Medplum React Components](https://storybook.medplum.com.ar/)
 - 🏥 [ESC 2022 Cardio-Oncology Guidelines](https://www.escardio.org/Guidelines/Clinical-Practice-Guidelines/Cardio-Oncology-Guidelines)
 - 🌐 [Live App](https://cardio-onco.epa-bienestar.com.ar)
 
