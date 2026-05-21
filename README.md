@@ -140,7 +140,7 @@ cp .env.defaults .env
 Edit `.env` and set your Medplum instance:
 
 ```env
-MEDPLUM_BASE_URI=https://api.epa-bienestar.com.ar   # or your own instance
+MEDPLUM_BASE_URI=https://api.medplum.com.ar   # or your own instance
 MEDPLUM_CLIENT_ID=your-client-id
 ```
 
