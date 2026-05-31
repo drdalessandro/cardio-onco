@@ -1,7 +1,7 @@
 import { Alert, Badge, Button, Divider, Group, Loader, Stack, Table, Text, Title } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { showNotification } from '@mantine/notifications';
-import { normalizeErrorString } from '@medplum/core';
+import { getReferenceString, normalizeErrorString } from '@medplum/core';
 import type { Patient, Questionnaire, QuestionnaireResponse } from '@medplum/fhirtypes';
 import { QuestionnaireForm, useMedplum } from '@medplum/react';
 import { IconAlertTriangle, IconCircleCheck, IconClipboardHeart, IconPlus } from '@tabler/icons-react';
@@ -26,65 +26,66 @@ export function CTRCDStratification({ patient }: CTRCDStratificationProps): JSX.
   const [questionnaire, setQuestionnaire] = useState<Questionnaire>();
   const [responses, setResponses] = useState<QuestionnaireResponse[]>();
   const [loading, setLoading] = useState(true);
+  const [submitError, setSubmitError] = useState<string>();
   const [formOpen, { open: openForm, close: closeForm }] = useDisclosure(false);
+
+  const patientRef = { reference: getReferenceString(patient), display: patient.name?.[0]?.text ?? patient.id };
 
   useEffect(() => {
     Promise.all([
       medplum.readResource('Questionnaire', QUESTIONNAIRE_ID),
-      medplum.searchResources('QuestionnaireResponse', {
-        questionnaire: `Questionnaire/${QUESTIONNAIRE_ID}`,
-        subject:       `Patient/${patient.id}`,
-        _sort:         '-authored',
-        _count:        '10',
-      }),
+      loadResponses(),
     ])
-      .then(([q, rs]) => {
-        setQuestionnaire(q as Questionnaire);
-        setResponses(rs as QuestionnaireResponse[]);
-      })
+      .then(([q]) => setQuestionnaire(q as Questionnaire))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [medplum, patient.id]);
+  }, [medplum, patient.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function loadResponses(): Promise<void> {
+    const rs = await medplum.searchResources('QuestionnaireResponse', {
+      questionnaire: `Questionnaire/${QUESTIONNAIRE_ID}`,
+      subject:       `Patient/${patient.id}`,
+      _sort:         '-authored',
+      _count:        '10',
+    });
+    setResponses(rs as QuestionnaireResponse[]);
+  }
 
   async function handleSubmit(formData: QuestionnaireResponse): Promise<void> {
+    setSubmitError(undefined);
     try {
-      await medplum.createResource({
-        ...formData,
+      const toSave: QuestionnaireResponse = {
+        resourceType: 'QuestionnaireResponse',
+        questionnaire: `Questionnaire/${QUESTIONNAIRE_ID}`,
         status:    'completed',
-        subject:   { reference: `Patient/${patient.id}`, display: patient.name?.[0]?.text ?? patient.id },
+        subject:   patientRef,
         authored:  new Date().toISOString(),
-      } as QuestionnaireResponse);
+        item:      formData.item,
+      };
+
+      await medplum.createResource(toSave);
 
       showNotification({
         icon:    <IconCircleCheck />,
         title:   'Score CTRCD enviado',
         message: 'El Bot generará el CarePlan y Tasks en segundos.',
         color:   'green',
+        autoClose: 5000,
       });
 
-      // Recargar responses
-      const updated = await medplum.searchResources('QuestionnaireResponse', {
-        questionnaire: `Questionnaire/${QUESTIONNAIRE_ID}`,
-        subject:       `Patient/${patient.id}`,
-        _sort:         '-authored',
-        _count:        '10',
-      });
-      setResponses(updated as QuestionnaireResponse[]);
+      await loadResponses();
       closeForm();
     } catch (err) {
+      const msg = normalizeErrorString(err);
+      setSubmitError(msg);
       showNotification({
         color:   'red',
         icon:    <IconAlertTriangle />,
-        title:   'Error',
-        message: normalizeErrorString(err),
+        title:   'Error al guardar',
+        message: msg,
+        autoClose: false,
       });
     }
-  }
-
-  function getStratumFromResponse(qr: QuestionnaireResponse): string | undefined {
-    // El Bot agrega la extensión de estrato al CarePlan, no al QR.
-    // Intentamos leer la nota o mostrar la fecha como identificador.
-    return qr.authored ? new Date(qr.authored).toLocaleString('es-AR') : qr.id;
   }
 
   if (loading) {
@@ -118,24 +119,27 @@ export function CTRCDStratification({ patient }: CTRCDStratificationProps): JSX.
             Al enviarlo el Bot generará automáticamente el CarePlan y las Tasks de seguimiento.
           </Text>
         </Stack>
-        <Button
-          leftSection={<IconPlus size={16} />}
-          onClick={openForm}
-          color="red"
-          variant={formOpen ? 'outline' : 'filled'}
-        >
-          Nueva estratificación
-        </Button>
+        {!formOpen && (
+          <Button leftSection={<IconPlus size={16} />} onClick={openForm} color="red">
+            Nueva estratificación
+          </Button>
+        )}
       </Group>
 
       {formOpen && (
         <>
           <Divider label="Completar score CTRCD" labelPosition="left" />
+          {submitError && (
+            <Alert color="red" icon={<IconAlertTriangle />} title="Error al guardar">
+              {submitError}
+            </Alert>
+          )}
           <QuestionnaireForm
             questionnaire={questionnaire}
+            subject={patientRef}
             onSubmit={handleSubmit}
           />
-          <Button variant="subtle" color="gray" onClick={closeForm}>
+          <Button variant="subtle" color="gray" onClick={() => { closeForm(); setSubmitError(undefined); }}>
             Cancelar
           </Button>
         </>
@@ -155,20 +159,15 @@ export function CTRCDStratification({ patient }: CTRCDStratificationProps): JSX.
             <Table.Tbody>
               {responses.map((qr) => (
                 <Table.Tr key={qr.id}>
-                  <Table.Td>{getStratumFromResponse(qr)}</Table.Td>
                   <Table.Td>
-                    <Badge color="green" variant="light">
-                      {qr.status}
-                    </Badge>
+                    {qr.authored ? new Date(qr.authored).toLocaleString('es-AR') : qr.id}
                   </Table.Td>
                   <Table.Td>
-                    <Button
-                      size="xs"
-                      variant="subtle"
-                      component="a"
-                      href={`/QuestionnaireResponse/${qr.id}`}
-                      target="_blank"
-                    >
+                    <Badge color="green" variant="light">{qr.status}</Badge>
+                  </Table.Td>
+                  <Table.Td>
+                    <Button size="xs" variant="subtle" component="a"
+                      href={`/QuestionnaireResponse/${qr.id}`} target="_blank">
                       Abrir
                     </Button>
                   </Table.Td>
