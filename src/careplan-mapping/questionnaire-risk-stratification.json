@@ -1,0 +1,164 @@
+{
+  "resourceType": "Questionnaire",
+  "id": "cardio-onco-risk-stratification",
+  "url": "https://api.epa-bienestar.com.ar/fhir/Questionnaire/cardio-onco-risk-stratification",
+  "version": "1.0.0",
+  "name": "CardioOncoRiskStratification",
+  "title": "Estratificación de riesgo cardio-oncológico CTRCD — ESC 2022",
+  "status": "active",
+  "date": "2025-05-01",
+  "publisher": "EPA Bienestar IA",
+  "description": "Cuestionario clínico para el cálculo del score CTRCD pre-tratamiento según ESC 2022. Al completarse dispara el Bot que crea el CarePlan y Tasks correspondientes al estrato de riesgo.",
+  "purpose": "Activar automáticamente el protocolo de vigilancia cardio-oncológica distribuida ESC 2022 en Medplum.",
+  "item": [
+    {
+      "linkId": "section-agent",
+      "text": "Agente oncológico planificado",
+      "type": "group",
+      "item": [
+        {
+          "linkId": "anthracycline-dose",
+          "text": "Dosis acumulada proyectada de antraciclinas (mg/m²). Ingresar 0 si no hay antraciclinas.",
+          "type": "decimal",
+          "required": true,
+          "extension": [{
+            "url": "http://hl7.org/fhir/StructureDefinition/questionnaire-unit",
+            "valueCoding": { "system": "http://unitsofmeasure.org", "code": "mg/m2" }
+          }]
+        },
+        {
+          "linkId": "high-risk-agent",
+          "text": "¿El tratamiento incluye agente de alto riesgo cardiotóxico? (Anti-HER2: trastuzumab/pertuzumab; VEGFR-TKI: sunitinib/sorafenib; Inhibidor de checkpoint; Fludarabina; Ibrutinib; Carfilzomib)",
+          "type": "boolean",
+          "required": true
+        },
+        {
+          "linkId": "mediastinal-rt",
+          "text": "¿Radioterapia mediastinal previa o planificada en el tratamiento actual?",
+          "type": "boolean",
+          "required": true
+        }
+      ]
+    },
+    {
+      "linkId": "section-cv-history",
+      "text": "Antecedentes cardiovasculares",
+      "type": "group",
+      "item": [
+        {
+          "linkId": "preexisting-cvd",
+          "text": "¿ECV preexistente? (Cardiopatía isquémica, ACV/AIT, EAP, cardiopatía estructural valvular/congénita)",
+          "type": "boolean",
+          "required": true
+        },
+        {
+          "linkId": "heart-failure",
+          "text": "¿Insuficiencia cardíaca previa documentada (cualquier FEVI)?",
+          "type": "boolean",
+          "required": true
+        },
+        {
+          "linkId": "previous-ctrcd",
+          "text": "¿CTRCD previo por tratamiento oncológico anterior?",
+          "type": "boolean",
+          "required": true
+        },
+        {
+          "linkId": "lvef-baseline",
+          "text": "FEVI basal en ecocardiograma pre-tratamiento (%)",
+          "type": "decimal",
+          "required": true,
+          "extension": [{
+            "url": "http://hl7.org/fhir/StructureDefinition/minValue",
+            "valueDecimal": 10
+          }, {
+            "url": "http://hl7.org/fhir/StructureDefinition/maxValue",
+            "valueDecimal": 85
+          }]
+        }
+      ]
+    },
+    {
+      "linkId": "section-frcv",
+      "text": "Factores de riesgo cardiovascular",
+      "type": "group",
+      "item": [
+        {
+          "linkId": "age",
+          "text": "Edad (años)",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "linkId": "hypertension",
+          "text": "¿Hipertensión arterial?",
+          "type": "boolean",
+          "required": true
+        },
+        {
+          "linkId": "diabetes",
+          "text": "¿Diabetes mellitus (cualquier tipo)?",
+          "type": "boolean",
+          "required": true
+        },
+        {
+          "linkId": "dyslipidemia",
+          "text": "¿Dislipemia?",
+          "type": "boolean",
+          "required": true
+        },
+        {
+          "linkId": "current-smoker",
+          "text": "¿Fumador activo?",
+          "type": "boolean",
+          "required": true
+        },
+        {
+          "linkId": "obesity",
+          "text": "¿Obesidad (IMC ≥ 30 kg/m²)?",
+          "type": "boolean",
+          "required": true
+        },
+        {
+          "linkId": "ckd-egfr",
+          "text": "TFGe CKD-EPI (ml/min/1.73m²). Ingresar 90 si función renal normal.",
+          "type": "decimal",
+          "required": true
+        }
+      ]
+    },
+    {
+      "linkId": "section-practitioners",
+      "text": "Equipo tratante",
+      "type": "group",
+      "item": [
+        {
+          "linkId": "cardio-onco-practitioner",
+          "text": "Cardiólogo responsable",
+          "type": "reference",
+          "required": false,
+          "extension": [{
+            "url": "http://hl7.org/fhir/StructureDefinition/questionnaire-referenceResource",
+            "valueCode": "Practitioner"
+          }]
+        },
+        {
+          "linkId": "oncologist",
+          "text": "Oncólogo tratante",
+          "type": "reference",
+          "required": false,
+          "extension": [{
+            "url": "http://hl7.org/fhir/StructureDefinition/questionnaire-referenceResource",
+            "valueCode": "Practitioner"
+          }]
+        },
+        {
+          "linkId": "treatment-start-date",
+          "text": "Fecha de inicio planificada del tratamiento oncológico",
+          "type": "date",
+          "required": true
+        }
+      ]
+    }
+  ]
+}
