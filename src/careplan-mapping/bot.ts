@@ -5,8 +5,11 @@
  * Flujo:
  *   QuestionnaireResponse (score CTRCD) → calcularRiesgo() → crearCarePlan() + crearTasks()
  *
- * Deploy: npx medplum deploy-bot --bot cardio-onco-create-careplan
- * Trigger: QuestionnaireResponse?questionnaire=cardio-onco-risk-stratification
+ * IMPORTANTE: Este archivo debe ser autocontenido (sin imports relativos).
+ * El runtime Lambda de Medplum ejecuta un único archivo .mjs.
+ *
+ * Deploy: pegar este archivo completo en Bot → Editor → Deploy
+ * Trigger: QuestionnaireResponse?questionnaire=cardio-onco-risk-stratification&status=completed
  */
 
 import {
@@ -26,14 +29,290 @@ import {
   Reference,
 } from '@medplum/fhirtypes';
 
-import {
-  CTRCDScoreInput,
-  PLAN_DEFINITION_URLS,
-  RISK_PROTOCOLS,
-  RiskProtocol,
-  RiskStratum,
-  TaskSchedule,
-} from './types';
+// ─── Types (inlineados — no usar import relativo en Bot Medplum) ──────────────
+
+type RiskStratum = 'low' | 'moderate' | 'high' | 'very-high';
+
+interface CTRCDScoreInput {
+  anthracyclineDoseMgM2: number;
+  hasHighRiskAgent: boolean;
+  mediastinalRadiotherapy: boolean;
+  hasPreexistingCVD: boolean;
+  hasHeartFailure: boolean;
+  hasPreviousCTRCD: boolean;
+  lvefBaseline: number;
+  hypertension: boolean;
+  diabetes: boolean;
+  dyslipidemia: boolean;
+  currentSmoker: boolean;
+  obesity: boolean;
+  ckdEGFR: number;
+  age: number;
+}
+
+interface TaskSchedule {
+  planDefinitionId: string;
+  planDefinitionTitle: string;
+  description: string;
+  periodDays: number;
+  occurrences: number | 'ongoing';
+  offsetDays: number;
+  priority: 'routine' | 'urgent' | 'stat';
+  performerRole: 'cardiologist' | 'nurse' | 'technologist';
+  loinc?: string;
+}
+
+interface RiskProtocol {
+  stratum: RiskStratum;
+  carePlanTitle: string;
+  carePlanDescription: string;
+  treatmentDurationMonths: number;
+  followUpMonths: number;
+  tasks: TaskSchedule[];
+}
+
+const PLAN_DEFINITION_URLS: Record<string, string> = {
+  'ecg-solo':        'https://api.epa-bienestar.com.ar/fhir/PlanDefinition/cardio-onco-ecg-solo',
+  'ecg-ta':          'https://api.epa-bienestar.com.ar/fhir/PlanDefinition/cardio-onco-ecg-ta',
+  'ecg-seguimiento': 'https://api.epa-bienestar.com.ar/fhir/PlanDefinition/cardio-onco-ecg-seguimiento',
+  'baseline':        'https://api.epa-bienestar.com.ar/fhir/PlanDefinition/cardio-onco-baseline-comprehensive',
+  'echo':            'https://api.epa-bienestar.com.ar/fhir/PlanDefinition/cardio-onco-echo-visit',
+  'biomarker-lab':   'https://api.epa-bienestar.com.ar/fhir/PlanDefinition/cardio-onco-biomarker-lab',
+  'risk-strat':      'https://api.epa-bienestar.com.ar/fhir/PlanDefinition/cardio-onco-risk-stratification',
+};
+
+const RISK_PROTOCOLS: Record<RiskStratum, RiskProtocol> = {
+  low: {
+    stratum: 'low',
+    carePlanTitle: 'Protocolo cardio-oncológico — Riesgo bajo ESC 2022',
+    carePlanDescription:
+      'Sin cardiopatía previa, sin FRCV mayor, antraciclinas < 200 mg/m². ' +
+      'ECG y eco solo en puntos clave. Lab trimestral.',
+    treatmentDurationMonths: 6,
+    followUpMonths: 12,
+    tasks: [
+      {
+        planDefinitionId: 'ecg-solo',
+        planDefinitionTitle: 'ECG basal pre-tratamiento',
+        description: 'ECG de 12 derivaciones basal antes de iniciar tratamiento oncológico. Evaluar QTc, ritmo.',
+        periodDays: 0, occurrences: 1, offsetDays: 0,
+        priority: 'routine', performerRole: 'cardiologist', loinc: '11524-6',
+      },
+      {
+        planDefinitionId: 'echo',
+        planDefinitionTitle: 'Ecocardiograma basal pre-tratamiento',
+        description: 'ETT con FEVI, GLS, función diastólica. Documento basal obligatorio ESC 2022.',
+        periodDays: 0, occurrences: 1, offsetDays: 3,
+        priority: 'routine', performerRole: 'technologist', loinc: '59063-1',
+      },
+      {
+        planDefinitionId: 'biomarker-lab',
+        planDefinitionTitle: 'Laboratorio trimestral — Biomarcadores',
+        description: 'TnI-as, NT-proBNP, panel metabólico. Sin ECG ni eco en misma visita.',
+        periodDays: 90, occurrences: 'ongoing', offsetDays: 30,
+        priority: 'routine', performerRole: 'nurse', loinc: '24323-8',
+      },
+      {
+        planDefinitionId: 'echo',
+        planDefinitionTitle: 'Ecocardiograma al finalizar tratamiento',
+        description: 'ETT serial post-tratamiento. Comparar FEVI y GLS vs basal.',
+        periodDays: 0, occurrences: 1, offsetDays: 180,
+        priority: 'routine', performerRole: 'technologist', loinc: '59063-1',
+      },
+      {
+        planDefinitionId: 'echo',
+        planDefinitionTitle: 'Ecocardiograma a 12 meses post-tratamiento',
+        description: 'ETT de seguimiento tardío. Vigilancia cardiotoxicidad diferida.',
+        periodDays: 0, occurrences: 1, offsetDays: 365,
+        priority: 'routine', performerRole: 'technologist', loinc: '59063-1',
+      },
+    ],
+  },
+
+  moderate: {
+    stratum: 'moderate',
+    carePlanTitle: 'Protocolo cardio-oncológico — Riesgo moderado ESC 2022',
+    carePlanDescription:
+      '1-2 FRCV o antraciclinas 200-350 mg/m². ECG+PA mensual, eco cada 3 meses, ' +
+      'lab cada 6 semanas, consulta de seguimiento trimestral.',
+    treatmentDurationMonths: 6,
+    followUpMonths: 24,
+    tasks: [
+      {
+        planDefinitionId: 'ecg-solo',
+        planDefinitionTitle: 'ECG basal',
+        description: 'ECG pre-tratamiento basal.',
+        periodDays: 0, occurrences: 1, offsetDays: 0,
+        priority: 'routine', performerRole: 'cardiologist', loinc: '11524-6',
+      },
+      {
+        planDefinitionId: 'echo',
+        planDefinitionTitle: 'Ecocardiograma basal',
+        description: 'ETT basal completo con GLS.',
+        periodDays: 0, occurrences: 1, offsetDays: 3,
+        priority: 'routine', performerRole: 'technologist', loinc: '59063-1',
+      },
+      {
+        planDefinitionId: 'ecg-ta',
+        planDefinitionTitle: 'ECG + PA mensual durante tratamiento',
+        description: 'Monitoreo de QTc y detección de HTA inducida por tratamiento (TICH). Sin eco ni lab en esta visita.',
+        periodDays: 28, occurrences: 'ongoing', offsetDays: 28,
+        priority: 'routine', performerRole: 'nurse', loinc: '11524-6',
+      },
+      {
+        planDefinitionId: 'echo',
+        planDefinitionTitle: 'Ecocardiograma trimestral',
+        description: 'ETT serial cada 3 meses. Sin ECG en misma visita.',
+        periodDays: 90, occurrences: 'ongoing', offsetDays: 90,
+        priority: 'routine', performerRole: 'technologist', loinc: '59063-1',
+      },
+      {
+        planDefinitionId: 'biomarker-lab',
+        planDefinitionTitle: 'Laboratorio cada 6 semanas',
+        description: 'TnI-as + NT-proBNP + panel metabólico. Flujo autónomo enfermería.',
+        periodDays: 42, occurrences: 'ongoing', offsetDays: 14,
+        priority: 'routine', performerRole: 'nurse', loinc: '24323-8',
+      },
+      {
+        planDefinitionId: 'ecg-seguimiento',
+        planDefinitionTitle: 'Consulta cardio-oncológica de seguimiento trimestral',
+        description: 'Evaluación clínica integral + ECG. Sin eco ni lab en misma visita.',
+        periodDays: 90, occurrences: 'ongoing', offsetDays: 60,
+        priority: 'routine', performerRole: 'cardiologist', loinc: '11524-6',
+      },
+    ],
+  },
+
+  high: {
+    stratum: 'high',
+    carePlanTitle: 'Protocolo cardio-oncológico — Riesgo alto ESC 2022',
+    carePlanDescription:
+      'ECV preexistente o antraciclinas > 350 mg/m² o radioterapia mediastinal previa. ' +
+      'ECG quincenal, ECG+PA semanal, eco cada 6 semanas, lab mensual, seguimiento mensual.',
+    treatmentDurationMonths: 6,
+    followUpMonths: 36,
+    tasks: [
+      {
+        planDefinitionId: 'ecg-solo',
+        planDefinitionTitle: 'ECG basal',
+        description: 'ECG basal antes de iniciar. Revisión cardiológica completa obligatoria.',
+        periodDays: 0, occurrences: 1, offsetDays: 0,
+        priority: 'routine', performerRole: 'cardiologist', loinc: '11524-6',
+      },
+      {
+        planDefinitionId: 'echo',
+        planDefinitionTitle: 'Ecocardiograma basal',
+        description: 'ETT basal completo. GLS obligatorio en riesgo alto.',
+        periodDays: 0, occurrences: 1, offsetDays: 2,
+        priority: 'routine', performerRole: 'technologist', loinc: '59063-1',
+      },
+      {
+        planDefinitionId: 'ecg-solo',
+        planDefinitionTitle: 'ECG quincenal',
+        description: 'ECG de monitoreo cada 2 semanas durante tratamiento activo. Solo ECG, sin PA ni consulta.',
+        periodDays: 14, occurrences: 'ongoing', offsetDays: 14,
+        priority: 'routine', performerRole: 'nurse', loinc: '11524-6',
+      },
+      {
+        planDefinitionId: 'ecg-ta',
+        planDefinitionTitle: 'ECG + PA semanal en inducción',
+        description: 'Control semanal de QTc y PA durante ciclos de inducción. Detección precoz de TICH.',
+        periodDays: 7, occurrences: 12, offsetDays: 7,
+        priority: 'routine', performerRole: 'nurse', loinc: '55284-4',
+      },
+      {
+        planDefinitionId: 'echo',
+        planDefinitionTitle: 'Ecocardiograma cada 6 semanas',
+        description: 'Vigilancia serial de FEVI y GLS. Comparación con basal. Sin ECG en misma visita.',
+        periodDays: 42, occurrences: 'ongoing', offsetDays: 42,
+        priority: 'routine', performerRole: 'technologist', loinc: '59063-1',
+      },
+      {
+        planDefinitionId: 'biomarker-lab',
+        planDefinitionTitle: 'Laboratorio mensual',
+        description: 'TnI-as, NT-proBNP, panel metabólico mensual. Sin ECG ni eco el mismo día.',
+        periodDays: 30, occurrences: 'ongoing', offsetDays: 21,
+        priority: 'routine', performerRole: 'nurse', loinc: '24323-8',
+      },
+      {
+        planDefinitionId: 'ecg-seguimiento',
+        planDefinitionTitle: 'Consulta cardio-oncológica mensual',
+        description: 'Evaluación clínica integral + ECG mensual. Decisión terapéutica documentada.',
+        periodDays: 30, occurrences: 'ongoing', offsetDays: 30,
+        priority: 'routine', performerRole: 'cardiologist', loinc: '11524-6',
+      },
+    ],
+  },
+
+  'very-high': {
+    stratum: 'very-high',
+    carePlanTitle: 'Protocolo cardio-oncológico — Riesgo muy alto ESC 2022',
+    carePlanDescription:
+      'IC preexistente, FEVI < 50%, CTRCD previo, o combinación de múltiples factores de alto riesgo. ' +
+      'Vigilancia intensiva. ECG quincenal, ECG+PA cada 5 días, eco cada 6 semanas, ' +
+      'lab mensual, seguimiento quincenal, alerta urgente 24h ante evento.',
+    treatmentDurationMonths: 6,
+    followUpMonths: 60,
+    tasks: [
+      {
+        planDefinitionId: 'ecg-solo',
+        planDefinitionTitle: 'ECG basal',
+        description: 'ECG basal. Revisión multidisciplinaria cardio-oncológica previa al inicio.',
+        periodDays: 0, occurrences: 1, offsetDays: 0,
+        priority: 'routine', performerRole: 'cardiologist', loinc: '11524-6',
+      },
+      {
+        planDefinitionId: 'echo',
+        planDefinitionTitle: 'Ecocardiograma basal',
+        description: 'ETT basal. GLS + speckle tracking obligatorio. Confirmar FEVI ≥ 40% para iniciar.',
+        periodDays: 0, occurrences: 1, offsetDays: 1,
+        priority: 'urgent', performerRole: 'technologist', loinc: '59063-1',
+      },
+      {
+        planDefinitionId: 'ecg-solo',
+        planDefinitionTitle: 'ECG quincenal',
+        description: 'ECG cada 2 semanas. Monitoreo QTc, arritmias, isquemia silente.',
+        periodDays: 14, occurrences: 'ongoing', offsetDays: 14,
+        priority: 'routine', performerRole: 'nurse', loinc: '11524-6',
+      },
+      {
+        planDefinitionId: 'ecg-ta',
+        planDefinitionTitle: 'ECG + PA cada 5 días',
+        description: 'Monitoreo intensivo. QTc + PA cada 5 días durante tratamiento activo.',
+        periodDays: 5, occurrences: 'ongoing', offsetDays: 5,
+        priority: 'routine', performerRole: 'nurse', loinc: '55284-4',
+      },
+      {
+        planDefinitionId: 'echo',
+        planDefinitionTitle: 'Ecocardiograma cada 6 semanas',
+        description: 'ETT serial cada 6 semanas. Alerta automática si FEVI cae > 10% o GLS deteriora > 15%.',
+        periodDays: 42, occurrences: 'ongoing', offsetDays: 42,
+        priority: 'routine', performerRole: 'technologist', loinc: '59063-1',
+      },
+      {
+        planDefinitionId: 'biomarker-lab',
+        planDefinitionTitle: 'Laboratorio mensual intensivo',
+        description: 'TnI-as, NT-proBNP, panel metabólico completo mensual. Sin ECG ni eco el mismo día.',
+        periodDays: 30, occurrences: 'ongoing', offsetDays: 15,
+        priority: 'routine', performerRole: 'nurse', loinc: '24323-8',
+      },
+      {
+        planDefinitionId: 'ecg-seguimiento',
+        planDefinitionTitle: 'Consulta cardio-oncológica quincenal',
+        description: 'Evaluación clínica + ECG cada 2 semanas. Decisión multidisciplinaria documentada.',
+        periodDays: 14, occurrences: 'ongoing', offsetDays: 14,
+        priority: 'routine', performerRole: 'cardiologist', loinc: '11524-6',
+      },
+      {
+        planDefinitionId: 'ecg-seguimiento',
+        planDefinitionTitle: 'Alerta urgente 24h ante evento cardíaco',
+        description: 'Task de alerta activada automáticamente si TnI > URL, FEVI < 40% o QTc > 500ms. Requiere contacto en 24h.',
+        periodDays: 0, occurrences: 1, offsetDays: 0,
+        priority: 'stat', performerRole: 'cardiologist',
+      },
+    ],
+  },
+};
 
 // ─── Punto de entrada del Bot ─────────────────────────────────────────────────
 
@@ -47,26 +326,15 @@ export async function handler(medplum: MedplumClient, event: BotEvent): Promise<
   const patientRef = qr.subject as Reference<Patient>;
   const patientId  = patientRef.reference!.split('/')[1];
 
-  // 1. Extraer datos del score del QR
   const scoreInput = extractScoreFromQR(qr);
-
-  // 2. Calcular estrato de riesgo ESC 2022
-  const stratum = calculateCTRCDRisk(scoreInput);
+  const stratum    = calculateCTRCDRisk(scoreInput);
   console.log(`[cardio-onco-bot] Paciente ${patientId} → estrato: ${stratum}`);
 
-  // 3. Obtener el Practitioner del contexto (Aquieri o Crosa — Marie Curie)
   const practitioner = await resolvePractitioner(medplum, qr);
+  const bundle       = buildCarePlanBundle(patientRef, practitioner, stratum, qr);
+  const result       = await medplum.executeBatch(bundle);
 
-  // 4. Crear CarePlan + Tasks en una transacción Bundle
-  const bundle = buildCarePlanBundle(patientRef, practitioner, stratum, qr);
-
-  // 5. Ejecutar transacción en Medplum
-  const result = await medplum.executeBatch(bundle);
-
-  const carePlanEntry = result.entry?.find(
-    (e) => e.resource?.resourceType === 'CarePlan'
-  );
-
+  const carePlanEntry = result.entry?.find((e) => e.resource?.resourceType === 'CarePlan');
   console.log(
     `[cardio-onco-bot] CarePlan creado: ${carePlanEntry?.resource?.id} | ` +
     `Tasks: ${result.entry?.filter(e => e.resource?.resourceType === 'Task').length}`
@@ -107,19 +375,16 @@ function extractScoreFromQR(qr: QuestionnaireResponse): CTRCDScoreInput {
 // ─── Algoritmo de estratificación CTRCD ESC 2022 ─────────────────────────────
 
 export function calculateCTRCDRisk(s: CTRCDScoreInput): RiskStratum {
-
-  // Muy alto — cualquier criterio es suficiente
   if (
-    s.hasHeartFailure                                            ||
-    s.hasPreviousCTRCD                                          ||
-    s.lvefBaseline < 50                                         ||
-    (s.hasPreexistingCVD && s.anthracyclineDoseMgM2 > 250)     ||
+    s.hasHeartFailure ||
+    s.hasPreviousCTRCD ||
+    s.lvefBaseline < 50 ||
+    (s.hasPreexistingCVD && s.anthracyclineDoseMgM2 > 250) ||
     (s.mediastinalRadiotherapy && s.hasPreexistingCVD)
   ) {
     return 'very-high';
   }
 
-  // Alto — 2+ factores o 1 factor + agente de alto riesgo
   const highFactors = [
     s.hasPreexistingCVD,
     s.anthracyclineDoseMgM2 > 350,
@@ -133,21 +398,15 @@ export function calculateCTRCDRisk(s: CTRCDScoreInput): RiskStratum {
     return 'high';
   }
 
-  // Contar FRCV
   const frcvCount = [
-    s.hypertension,
-    s.diabetes,
-    s.dyslipidemia,
-    s.currentSmoker,
-    s.obesity,
-    s.age >= 65,
-    s.ckdEGFR < 60,
+    s.hypertension, s.diabetes, s.dyslipidemia, s.currentSmoker,
+    s.obesity, s.age >= 65, s.ckdEGFR < 60,
   ].filter(Boolean).length;
 
   const isModerate =
-    frcvCount >= 2                                             ||
+    frcvCount >= 2 ||
     (s.anthracyclineDoseMgM2 >= 200 && s.anthracyclineDoseMgM2 <= 350) ||
-    (s.hasHighRiskAgent && frcvCount >= 1)                     ||
+    (s.hasHighRiskAgent && frcvCount >= 1) ||
     highFactors >= 1;
 
   return isModerate ? 'moderate' : 'low';
@@ -164,10 +423,8 @@ export function buildCarePlanBundle(
   const protocol   = RISK_PROTOCOLS[stratum];
   const today      = new Date();
   const carePlanId = `urn:uuid:careplan-${stratum}-${Date.now()}`;
-
   const entries: BundleEntry[] = [];
 
-  // ── CarePlan ────────────────────────────────────────────────────────────────
   const carePlan: CarePlan = {
     resourceType: 'CarePlan',
     status:       'active',
@@ -181,20 +438,11 @@ export function buildCarePlanBundle(
                .toISOString().split('T')[0],
     },
     instantiatesCanonical: [PLAN_DEFINITION_URLS['risk-strat']],
-    category: [
-      {
-        coding: [{
-          system:  'http://snomed.info/sct',
-          code:    '734163000',
-          display: 'Care plan',
-        }],
-      },
-    ],
-    author:       practitioner,
-    supportingInfo: [{
-      reference: `QuestionnaireResponse/${sourceQR.id}`,
-      display:   'Score CTRCD ESC 2022',
+    category: [{
+      coding: [{ system: 'http://snomed.info/sct', code: '734163000', display: 'Care plan' }],
     }],
+    author: practitioner,
+    supportingInfo: [{ reference: `QuestionnaireResponse/${sourceQR.id}`, display: 'Score CTRCD ESC 2022' }],
     note: [{
       text: `Estrato de riesgo ESC 2022: ${stratum.toUpperCase()}. ` +
             `Generado por Bot cardio-onco-create-careplan. ` +
@@ -203,24 +451,13 @@ export function buildCarePlanBundle(
     }],
     activity: buildActivityReferences(protocol),
     extension: [
-      {
-        url:       'https://api.epa-bienestar.com.ar/fhir/StructureDefinition/ctrcd-risk-stratum',
-        valueCode: stratum,
-      },
-      {
-        url:         'https://api.epa-bienestar.com.ar/fhir/StructureDefinition/esc-guideline-year',
-        valueString: '2022',
-      },
+      { url: 'https://api.epa-bienestar.com.ar/fhir/StructureDefinition/ctrcd-risk-stratum', valueCode: stratum },
+      { url: 'https://api.epa-bienestar.com.ar/fhir/StructureDefinition/esc-guideline-year', valueString: '2022' },
     ],
   };
 
-  entries.push({
-    fullUrl:  carePlanId,
-    resource: carePlan,
-    request:  { method: 'POST', url: 'CarePlan' },
-  });
+  entries.push({ fullUrl: carePlanId, resource: carePlan, request: { method: 'POST', url: 'CarePlan' } });
 
-  // ── Tasks ────────────────────────────────────────────────────────────────────
   for (const taskDef of protocol.tasks) {
     const tasks = buildTasks(taskDef, patientRef, practitioner, carePlanId, today);
     for (const task of tasks) {
@@ -252,8 +489,7 @@ function buildTasks(
 
   for (let i = 0; i < count; i++) {
     const due = addDays(startDate, def.offsetDays + def.periodDays * i);
-
-    const task: Task = {
+    tasks.push({
       resourceType: 'Task',
       status:       'requested',
       intent:       'plan',
@@ -280,20 +516,11 @@ function buildTasks(
               `NO combinar con otras visitas diagnósticas el mismo día (ESC 2022).`,
       }],
       extension: [
-        {
-          url:          'https://api.epa-bienestar.com.ar/fhir/StructureDefinition/visit-sequence-number',
-          valueInteger: i + 1,
-        },
-        {
-          url:         'https://api.epa-bienestar.com.ar/fhir/StructureDefinition/no-bundle-with-others',
-          valueBoolean: true,
-        },
+        { url: 'https://api.epa-bienestar.com.ar/fhir/StructureDefinition/visit-sequence-number', valueInteger: i + 1 },
+        { url: 'https://api.epa-bienestar.com.ar/fhir/StructureDefinition/no-bundle-with-others', valueBoolean: true },
       ],
-    };
-
-    tasks.push(task);
+    });
   }
-
   return tasks;
 }
 
@@ -311,9 +538,9 @@ function buildActivityReferences(protocol: RiskProtocol): CarePlanActivity[] {
       },
       status:      'not-started' as const,
       description: def.description,
-      scheduledTiming: def.periodDays > 0 ? {
-        repeat: { frequency: 1, period: def.periodDays, periodUnit: 'd' as const },
-      } : undefined,
+      scheduledTiming: def.periodDays > 0
+        ? { repeat: { frequency: 1, period: def.periodDays, periodUnit: 'd' as const } }
+        : undefined,
       instantiatesCanonical: [PLAN_DEFINITION_URLS[def.planDefinitionId] ?? ''],
     },
   }));
@@ -322,16 +549,14 @@ function buildActivityReferences(protocol: RiskProtocol): CarePlanActivity[] {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 async function resolvePractitioner(
-  medplum:    MedplumClient,
-  qr:         QuestionnaireResponse,
+  medplum: MedplumClient,
+  qr:      QuestionnaireResponse,
 ): Promise<Reference<Practitioner> | undefined> {
   if (qr.author?.reference?.startsWith('Practitioner/')) {
     return qr.author as Reference<Practitioner>;
   }
   try {
-    const results = await medplum.searchResources('Practitioner', {
-      identifier: 'MN-114729',   // Dr. Aquieri — Marie Curie
-    });
+    const results = await medplum.searchResources('Practitioner', { identifier: 'MN-114729' });
     if (results.length > 0) {
       return { reference: `Practitioner/${results[0].id}`, display: 'Dr. Aquieri' };
     }
