@@ -528,7 +528,7 @@ function buildTasks(
 
 function buildActivityReferences(protocol: RiskProtocol): CarePlanActivity[] {
   return protocol.tasks.map((def) => ({
-    plannedActivityDetail: {
+    detail: {
       kind:  'Task' as const,
       code: {
         coding: def.loinc
