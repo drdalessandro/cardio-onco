@@ -18,6 +18,7 @@ import { HFAICOSCalculator } from './HFAICOSCalculator';
 import { InterconsultaCardioOnco } from './InterconsultaCardioOnco';
 import { MonitoringSchedule } from './MonitoringSchedule';
 import { PatientObservations } from './PatientObservations';
+import { CTRCDStratification } from './CTRCDStratification';
 import { Resumen } from './Resumen';
 
 interface PatientDetailsProps {
@@ -41,6 +42,7 @@ export function PatientDetails(props: PatientDetailsProps): JSX.Element {
     ['monitoreo', 'Monitoreo ESC'],
     ['alertas', 'Alertas'],
     ['interconsulta', 'Interconsulta'],
+    ['estratificacion', 'Estratificación CTRCD'],
     ['sobrevivientes', 'Sobrevivientes'],
     ['resumen', 'Resumen'],
   ];
@@ -134,6 +136,9 @@ export function PatientDetails(props: PatientDetailsProps): JSX.Element {
           <Stack p="xs">
             <InterconsultaCardioOnco patient={props.patient} />
           </Stack>
+        </Tabs.Panel>
+        <Tabs.Panel value="estratificacion">
+          <CTRCDStratification patient={props.patient} />
         </Tabs.Panel>
         <Tabs.Panel value="sobrevivientes">
           <Stack p="xs">
