@@ -10,7 +10,11 @@
 
 import { MedplumClient } from '@medplum/core';
 import { readFileSync }   from 'fs';
-import { join }           from 'path';
+import { join, dirname }  from 'path';
+import { fileURLToPath }  from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = dirname(__filename);
 
 const MEDPLUM_BASE_URL = 'https://api.epa-bienestar.com.ar/fhir';
 const BOT_NAME         = 'cardio-onco-create-careplan';
