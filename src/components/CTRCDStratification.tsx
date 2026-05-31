@@ -8,7 +8,7 @@ import { IconAlertTriangle, IconCircleCheck, IconClipboardHeart, IconPlus } from
 import { useEffect, useState } from 'react';
 import type { JSX } from 'react';
 
-const QUESTIONNAIRE_ID = 'cardio-onco-risk-stratification';
+const QUESTIONNAIRE_ID = 'b7639fa1-4a68-4351-ba8c-5d42657e1f74';
 
 const STRATUM_LABELS: Record<string, { label: string; color: string }> = {
   'low':       { label: 'Riesgo Bajo',      color: 'green'  },
