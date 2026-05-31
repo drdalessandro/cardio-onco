@@ -2,11 +2,11 @@
   "resourceType": "Questionnaire",
   "id": "cardio-onco-risk-stratification",
   "url": "https://api.epa-bienestar.com.ar/fhir/Questionnaire/cardio-onco-risk-stratification",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "CardioOncoRiskStratification",
   "title": "Estratificación de riesgo cardio-oncológico CTRCD — ESC 2022",
   "status": "active",
-  "date": "2025-05-01",
+  "date": "2026-05-31",
   "publisher": "EPA Bienestar IA",
   "description": "Cuestionario clínico para el cálculo del score CTRCD pre-tratamiento según ESC 2022. Al completarse dispara el Bot que crea el CarePlan y Tasks correspondientes al estrato de riesgo.",
   "purpose": "Activar automáticamente el protocolo de vigilancia cardio-oncológica distribuida ESC 2022 en Medplum.",
@@ -30,13 +30,13 @@
           "linkId": "high-risk-agent",
           "text": "¿El tratamiento incluye agente de alto riesgo cardiotóxico? (Anti-HER2: trastuzumab/pertuzumab; VEGFR-TKI: sunitinib/sorafenib; Inhibidor de checkpoint; Fludarabina; Ibrutinib; Carfilzomib)",
           "type": "boolean",
-          "required": true
+          "required": false
         },
         {
           "linkId": "mediastinal-rt",
           "text": "¿Radioterapia mediastinal previa o planificada en el tratamiento actual?",
           "type": "boolean",
-          "required": true
+          "required": false
         }
       ]
     },
@@ -49,19 +49,19 @@
           "linkId": "preexisting-cvd",
           "text": "¿ECV preexistente? (Cardiopatía isquémica, ACV/AIT, EAP, cardiopatía estructural valvular/congénita)",
           "type": "boolean",
-          "required": true
+          "required": false
         },
         {
           "linkId": "heart-failure",
           "text": "¿Insuficiencia cardíaca previa documentada (cualquier FEVI)?",
           "type": "boolean",
-          "required": true
+          "required": false
         },
         {
           "linkId": "previous-ctrcd",
           "text": "¿CTRCD previo por tratamiento oncológico anterior?",
           "type": "boolean",
-          "required": true
+          "required": false
         },
         {
           "linkId": "lvef-baseline",
@@ -93,31 +93,31 @@
           "linkId": "hypertension",
           "text": "¿Hipertensión arterial?",
           "type": "boolean",
-          "required": true
+          "required": false
         },
         {
           "linkId": "diabetes",
           "text": "¿Diabetes mellitus (cualquier tipo)?",
           "type": "boolean",
-          "required": true
+          "required": false
         },
         {
           "linkId": "dyslipidemia",
           "text": "¿Dislipemia?",
           "type": "boolean",
-          "required": true
+          "required": false
         },
         {
           "linkId": "current-smoker",
           "text": "¿Fumador activo?",
           "type": "boolean",
-          "required": true
+          "required": false
         },
         {
           "linkId": "obesity",
           "text": "¿Obesidad (IMC ≥ 30 kg/m²)?",
           "type": "boolean",
-          "required": true
+          "required": false
         },
         {
           "linkId": "ckd-egfr",
