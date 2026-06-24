@@ -215,10 +215,14 @@ export interface RiskScoreDef {
 export const RISK_SCORES: Record<RiskScoreMethod, RiskScoreDef> = {
   'PREVENT-AHA-2023': {
     method: 'PREVENT-AHA-2023',
-    display: 'AHA PREVENT (riesgo CV total a 10/30 años)',
+    display: 'AHA PREVENT 2023 — modelo completo (riesgo CV total a 10 y 30 años)',
     sourceFields: ['PREVENT (bajo <5, inter 5-7.5, modera 7.5 -10, alto > 10)', 'Prevent calculado'],
     thresholds: { low: 5, intermediate: 7.5, moderate: 10, high: 10 },
-    inputs: ['age', 'sex', 'cholesterolTotal', 'hdl', 'systolicBP', 'antihypertensiveTx', 'smokingStatus', 'diabetes', 'egfr'],
+    // Modelo completo: base + HbA1c + UACR (Microalb) + índice de deprivación social (SDI) + uso de estatina.
+    inputs: [
+      'age', 'sex', 'cholesterolTotal', 'hdl', 'systolicBP', 'antihypertensiveTx',
+      'smokingStatus', 'diabetes', 'egfr', 'hba1c', 'uacr', 'statinTx', 'sdi',
+    ],
   },
   SAC: {
     method: 'SAC',

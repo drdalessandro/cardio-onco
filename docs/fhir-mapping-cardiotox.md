@@ -289,7 +289,7 @@ Estructura común:
 
 | Campo(s) tabla | `method.code` | Algoritmo | Categorías (de la tabla) |
 |---|---|---|---|
-| `PREVENT...`, `Prevent calculado` | `PREVENT-AHA-2023` | AHA PREVENT (10/30 años, riesgo CV total) | bajo <5 · intermedio 5–7.5 · moderado 7.5–10 · alto >10 |
+| `PREVENT...`, `Prevent calculado` | `PREVENT-AHA-2023` | **AHA PREVENT 2023 — modelo completo** (riesgo CV total a 10 **y 30** años) | bajo <5 · intermedio 5–7.5 · moderado 7.5–10 · alto >10 |
 | `SAC`, `SAC calculado` | `SAC` | Score Sociedad Argentina de Cardiología | bajo/moderado/alto |
 | `ESC` | `ESC-SCORE2` | ESC SCORE2 / SCORE2-OP | bajo/moderado/alto/muy alto |
 | `OPS`, `OPS calculado` | `OPS-PAHO` | Tablas OPS/OMS región AMR | por categoría |
@@ -311,7 +311,13 @@ Estructura común:
 | Tabaquismo | Obs `72166-2` | ✓ | ✓ | ✓ | ✓ |
 | Diabetes | Condition `E11` | ✓ | ✓ | ✓ | ✓ |
 | eGFR | Obs `98979-8` | ✓ | — | — | — |
-| (opc.) HbA1c, Lp(a), IMC | Obs `4548-4`/`10835-7`/`39156-5` | ✓ | — | — | — |
+| HbA1c (modelo completo) | Obs `4548-4` | ✓ | — | — | — |
+| Índice albúmina/creatinina — UACR (`Microalb`) | Obs `14959-1` `(verificar)` | ✓ | — | — | — |
+| Índice de deprivación social (SDI, por código postal) | Obs/extensión SDOH `LOCAL` | ✓ | — | — | — |
+| Uso de estatina | MedicationStatement `C10` | ✓ | — | — | — |
+| (modificador) Lp(a), IMC | Obs `10835-7` / `39156-5` | ✓ | — | — | — |
+
+> **PREVENT 2023 — modelo completo (definido):** además de la base, el cálculo a 10 **y 30** años usa **HbA1c**, **UACR** (campo `Microalb`) y **SDI** (deprivación social por código postal). El campo `Microalb` de la tabla pasa de microalbuminuria simple a alimentar el índice albúmina/creatinina; conviene registrar también creatinina urinaria para el cociente. SDI requiere el código postal del paciente (`Patient.address.postalCode`).
 
 Las clases funcionales que la tabla lista junto a los scores se modelan como **Observation**, no como RiskAssessment:
 
