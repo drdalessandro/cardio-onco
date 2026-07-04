@@ -28,6 +28,13 @@ const Bots: BotDescription[] = [
     dist: 'dist/bots/core/gynecology-encounter-note.js',
     criteria: 'QuestionnaireResponse?questionnaire=$gynecology-visit',
   },
+  {
+    // Recalcula los RiskAssessment (PREVENT, Framingham, SCORE2, Globorisk)
+    // cuando cambia una Observation de entrada de los scores.
+    src: 'src/cardiotox-mapping/recalculate-scores-bot.ts',
+    dist: 'dist/cardiotox-mapping/recalculate-scores-bot.js',
+    criteria: 'Observation?code=2093-3,2085-9,8480-6,85354-9,98979-8,39156-5,4548-4,14959-1,72166-2',
+  },
 ];
 
 async function main(): Promise<void> {

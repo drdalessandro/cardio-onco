@@ -19,6 +19,7 @@ import { InterconsultaCardioOnco } from './InterconsultaCardioOnco';
 import { MonitoringSchedule } from './MonitoringSchedule';
 import { PatientObservations } from './PatientObservations';
 import { CTRCDStratification } from './CTRCDStratification';
+import { RiskScoresPanel } from './RiskScoresPanel';
 import { Resumen } from './Resumen';
 
 interface PatientDetailsProps {
@@ -38,6 +39,7 @@ export function PatientDetails(props: PatientDetailsProps): JSX.Element {
     ['encounter', 'Encuentros'],
     ['clinical', 'Impresiones Clínicas'],
     ['observations', 'Observaciones'],
+    ['scores', 'Scores de Riesgo'],
     ['cardiotoxicity', 'Cardiotoxicidad'],
     ['monitoreo', 'Monitoreo ESC'],
     ['alertas', 'Alertas'],
@@ -116,6 +118,9 @@ export function PatientDetails(props: PatientDetailsProps): JSX.Element {
         </Tabs.Panel>
         <Tabs.Panel value="observations">
           <PatientObservations patient={props.patient} />
+        </Tabs.Panel>
+        <Tabs.Panel value="scores">
+          <RiskScoresPanel patient={props.patient} />
         </Tabs.Panel>
         <Tabs.Panel value="cardiotoxicity">
           <CardiotoxicityDashboard patient={props.patient} />
