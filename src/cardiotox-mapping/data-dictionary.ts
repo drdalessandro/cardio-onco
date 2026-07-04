@@ -37,6 +37,8 @@ export const SYSTEMS = {
   cardiotoxRecordId: `${PROJECT_FHIR_BASE}/CodeSystem/cardiotox-record-id`,
   echoMeasures: `${PROJECT_FHIR_BASE}/CodeSystem/echo-measures`,
   vascularDoppler: `${PROJECT_FHIR_BASE}/CodeSystem/vascular-doppler`,
+  oncoMeasures: `${PROJECT_FHIR_BASE}/CodeSystem/onco-measures`,
+  cancerGroup: `${PROJECT_FHIR_BASE}/CodeSystem/cancer-group`,
   riskSourceExt: `${PROJECT_FHIR_BASE}/StructureDefinition/risk-source`,
 } as const;
 
@@ -186,35 +188,65 @@ export const CHEMO_FAMILIES: ChemoFamily[] = [
 
 /** Dosis acumulada de antraciclinas — dato crítico de cardiotoxicidad. */
 export const CUMULATIVE_ANTHRACYCLINE_DOSE = {
-  system: SYSTEMS.echoMeasures, // CodeSystem local
+  system: SYSTEMS.oncoMeasures, // CodeSystem local del proyecto
   code: 'cumulative-anthracycline-dose',
   display: 'Dosis acumulada de antraciclinas (equiv. doxorrubicina)',
   unit: 'mg/m2',
 } as const;
 
+// ─── Observations con código LOCAL (sin LOINC universal) ─────────────────────
+// Eco (echoMeasures) y Doppler vascular (vascularDoppler). Ver docs §4 y §7.
+
+export interface LocalObsCode {
+  system: string;
+  code: string;
+  display: string;
+  unit?: string;
+}
+
+export const LOCAL_OBSERVATION_CODES = {
+  // Ecocardiograma
+  mapse: { system: SYSTEMS.echoMeasures, code: 'mapse', display: 'MAPSE', unit: 'mm' },
+  relativeWallThickness: { system: SYSTEMS.echoMeasures, code: 'relative-wall-thickness', display: 'Espesor parietal relativo (EPR)', unit: '{ratio}' },
+  ePrime: { system: SYSTEMS.echoMeasures, code: 'tissue-doppler-e-prime', display: "Onda e' tisular", unit: 'cm/s' },
+  eOverEPrime: { system: SYSTEMS.echoMeasures, code: 'e-over-e-prime', display: "E/e'", unit: '{ratio}' },
+  sLateral: { system: SYSTEMS.echoMeasures, code: 'tissue-doppler-s-lateral', display: "Onda S' lateral", unit: 'cm/s' },
+  leftAtrialArea: { system: SYSTEMS.echoMeasures, code: 'left-atrial-area', display: 'Área aurícula izquierda', unit: 'cm2' },
+  tricuspidRegurgVelocity: { system: SYSTEMS.echoMeasures, code: 'tricuspid-regurg-velocity', display: 'Velocidad de insuficiencia tricuspídea', unit: 'm/s' },
+  // Doppler vascular
+  carotidIMT: { system: SYSTEMS.vascularDoppler, code: 'carotid-imt', display: 'Espesor mio-intimal carotídeo (EMI)', unit: 'mm' },
+  atheromatosisArteryCount: { system: SYSTEMS.vascularDoppler, code: 'atheromatosis-artery-count', display: 'Nº de arterias con ateromatosis (Total)', unit: '{count}' },
+} as const satisfies Record<string, LocalObsCode>;
+
 // ─── Scores de riesgo → RiskAssessment.method ────────────────────────────────
 
 export type RiskScoreMethod =
   | 'PREVENT-AHA-2023'
-  | 'SAC'
+  | 'SAC-DVATC'
   | 'ESC-SCORE2'
   | 'OPS-PAHO'
   | 'FRAMINGHAM'
   | 'HFA-ICOS-ESC-2022';
 
+/** Familia del score: riesgo CV general vs riesgo de cardiotoxicidad. */
+export type RiskScoreFamily = 'cv-general' | 'cardiotoxicity';
+
 export interface RiskScoreDef {
   method: RiskScoreMethod;
+  family: RiskScoreFamily;
   display: string;
   sourceFields: string[];
   /** Umbrales de categoría sobre el % calculado (cuando aplica). */
   thresholds?: { low: number; intermediate?: number; moderate?: number; high: number };
-  /** LOINC/Observation/Condition inputs que el algoritmo consume (`basis`). */
+  /** Observation/Condition inputs que el algoritmo consume (`basis`). */
   inputs: string[];
 }
 
 export const RISK_SCORES: Record<RiskScoreMethod, RiskScoreDef> = {
+  // ── Riesgo cardiovascular general (10 / 30 años) ──
   'PREVENT-AHA-2023': {
     method: 'PREVENT-AHA-2023',
+    family: 'cv-general',
     display: 'AHA PREVENT 2023 — modelo completo (riesgo CV total a 10 y 30 años)',
     sourceFields: ['PREVENT (bajo <5, inter 5-7.5, modera 7.5 -10, alto > 10)', 'Prevent calculado'],
     thresholds: { low: 5, intermediate: 7.5, moderate: 10, high: 10 },
@@ -224,32 +256,44 @@ export const RISK_SCORES: Record<RiskScoreMethod, RiskScoreDef> = {
       'smokingStatus', 'diabetes', 'egfr', 'hba1c', 'uacr', 'statinTx', 'sdi',
     ],
   },
-  SAC: {
-    method: 'SAC',
-    display: 'Score Sociedad Argentina de Cardiología',
-    sourceFields: ['SAC', 'SAC calculado'],
-    inputs: ['age', 'sex', 'cholesterolTotal', 'hdl', 'systolicBP', 'smokingStatus', 'diabetes'],
-  },
   'ESC-SCORE2': {
     method: 'ESC-SCORE2',
+    family: 'cv-general',
     display: 'ESC SCORE2 / SCORE2-OP',
     sourceFields: ['ESC'],
     inputs: ['age', 'sex', 'nonHdlCholesterol', 'systolicBP', 'smokingStatus'],
   },
   'OPS-PAHO': {
     method: 'OPS-PAHO',
-    display: 'Tablas OPS/OMS — región AMR',
+    family: 'cv-general',
+    display: 'Calculadora OPS/OMS HEARTS (paho.org/cardioapp, región AMR, con colesterol)',
     sourceFields: ['OPS', 'OPS calculado'],
     inputs: ['age', 'sex', 'systolicBP', 'smokingStatus', 'diabetes', 'cholesterolTotal'],
   },
   FRAMINGHAM: {
     method: 'FRAMINGHAM',
+    family: 'cv-general',
     display: 'Framingham Risk Score',
     sourceFields: ['Framingham', 'Framingham calculado'],
     inputs: ['age', 'sex', 'cholesterolTotal', 'hdl', 'systolicBP', 'antihypertensiveTx', 'smokingStatus', 'diabetes'],
   },
+  // ── Riesgo de cardiotoxicidad (DVATC / CTRCD) ──
+  'SAC-DVATC': {
+    method: 'SAC-DVATC',
+    family: 'cardiotoxicity',
+    display: 'Score de cardiotoxicidad SAC (DVATC) — Consenso SAC, Tabla 2',
+    sourceFields: ['SAC', 'SAC calculado'],
+    // Factores DVATC ponderados por tipo de tratamiento (antraciclinas / anti-HER2 / anti-VEGF).
+    // Umbrales bajo/moderado/alto: pendientes del texto de la pág. 34 del Consenso SAC.
+    inputs: [
+      'ageUnder15OrOver65', 'female', 'genetic', 'hypertension', 'coronaryDisease',
+      'ckd', 'obesity', 'lvefBaseline50to55', 'previousDVATC', 'concomitantChemoOrRT',
+      'cumulativeAnthracyclineDose', 'treatmentType',
+    ],
+  },
   'HFA-ICOS-ESC-2022': {
     method: 'HFA-ICOS-ESC-2022',
+    family: 'cardiotoxicity',
     display: 'HFA-ICOS ESC 2022 (riesgo CTRCD)',
     sourceFields: [],
     inputs: ['preexistingCVD', 'lvefBaseline', 'anthracyclineDose', 'mediastinalRT', 'cvRiskFactors'],
@@ -277,4 +321,12 @@ export const DERIVED_FIELDS: string[] = [
   'SAC calculado',
   'OPS calculado',
   'Framingham calculado',
+];
+
+// ─── Campos sin relevancia clínica — NO se migran ────────────────────────────
+// Confirmado por el autor: columnas administrativas / de prueba.
+export const UNMAPPED_FIELDS: string[] = [
+  'F', // cuenta de pacientes atendidos
+  'Estado paciente', // columna de prueba
+  'Estado seguimiento', // columna de prueba (el estado surge del EpisodeOfCare)
 ];

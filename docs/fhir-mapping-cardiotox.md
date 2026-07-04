@@ -3,7 +3,7 @@
 > Proyecto **Favaloro | Medplum Argentina** · Servidor FHIR R4 Medplum en `https://api.medplum.com.ar`
 > Plataforma Cardio-Onco · Guías ESC 2022 de Cardio-Oncología
 >
-> **Estado:** especificación v0.1 — pendiente de validación clínica antes de implementar los cálculos de riesgo.
+> **Estado:** especificación v0.2 — revisada con el autor (significado de campos, SAC como score de cardiotoxicidad, PREVENT modelo completo). Lista para pasar al motor de scores.
 
 ---
 
@@ -44,11 +44,11 @@
 | `Nombre` | `Patient.name[0].given` | — | — |
 | `Apellido` | `Patient.name[0].family` | — | — |
 | `DNI` | `Patient.identifier` | system `https://www.argentina.gob.ar/dni` · `use: official` | Identificador nacional AR |
-| `F` | `Patient.identifier` | system `.../CodeSystem/cardiotox-record-id` `LOCAL` · `use: secondary` | Nº de ficha/fila de la tabla origen (trazabilidad de migración) |
+| `F` | **No se mapea** | — | Columna administrativa (cuenta de pacientes atendidos); sin relevancia clínica según el autor |
 | `Sexo` | `Patient.gender` | `male` \| `female` \| `other` \| `unknown` | Sexo administrativo. Para scores se usa sexo biológico → ver `Observation` 76689-9 si difiere |
 | `Edad` | **derivado** de `Patient.birthDate` | — | **NO se almacena.** Se carga `birthDate`; la edad se calcula |
 | `Telefono` | `Patient.telecom[].value` (`system: phone`) | — | — |
-| `Estado paciente` | `Patient.active` (+ `Flag` si requiere semántica clínica) | — | Activo/inactivo administrativo |
+| `Estado paciente` | **No se mapea** | — | Columna de prueba sin relevancia (confirmado). El fallecimiento se modela en `Patient.deceased` |
 | `Muerte` | `Patient.deceasedBoolean` / `deceasedDateTime` | — | — |
 | `Causa CV` | `Observation` (causa de muerte) | LOINC `79378-6` "Cause of death" + valor SNOMED CV `(verificar)` | Alternativa: `Condition` con `Observation` de causa. Booleano "causa CV" → `valueCodeableConcept` |
 
@@ -59,7 +59,7 @@
 | Campo tabla | Recurso · path | Sistema · código | Notas |
 |---|---|---|---|
 | `Inicio seguimiento` | `EpisodeOfCare.period.start` | — | Fecha de ingreso al programa cardio-onco |
-| `Estado seguimiento` | `EpisodeOfCare.status` | `planned\|active\|onhold\|finished\|cancelled` | Mapear estados de la tabla a este value set |
+| `Estado seguimiento` | `EpisodeOfCare.status` (intrínseco) | `planned\|active\|onhold\|finished\|cancelled` | La columna original era de prueba (sin relevancia); el estado surge del ciclo de vida del EpisodeOfCare, no de la tabla |
 | `Día en estudio` | **derivado** = `today − period.start` | — | **NO se almacena** |
 | `ultimo control` | `Appointment` (status `fulfilled`) o `Encounter` previo | — | — |
 | `PROXIMO CONTROL` | `Appointment` (status `booked`) | — | — |
@@ -76,7 +76,7 @@ Categoría `vital-signs`. Unidades en **UCUM**.
 | Campo tabla | LOINC | UCUM | Notas |
 |---|---|---|---|
 | `Peso (kg)` | `29463-7` Body weight | `kg` | — |
-| `Peso minimo` | `29463-7` + `Observation.component`/extensión o `valueQuantity` con `Observation.code` LOCAL `peso-minimo` | `kg` | Peso mínimo registrado en seguimiento (relevante en caquexia oncológica) |
+| `Peso minimo` | `29463-7` (preferido: **derivar** el mínimo de la serie de peso) | `kg` | Peso mínimo registrado en el seguimiento por la enfermedad oncológica (confirmado). Si no hay serie completa, guardar como Observation `29463-7` con qualifier LOCAL `minimum-during-followup` |
 | `Altura (m)` | `8302-2` Body height | `m` (o `cm`) | — |
 | `IMC` | `39156-5` BMI | `kg/m2` | Derivado pero LOINC lo estandariza → se persiste como Observation |
 | `Peri Abd (cm)` / `Peri abd (mts)` | `8280-0` Waist circumference | `cm` | Unificar a `cm`. No duplicar campo m/cm |
@@ -165,7 +165,7 @@ Categoría `laboratory`. Unidades UCUM (ajustar según informe del laboratorio).
 | `Ateromatosis leve/significativa`, `Carótidas ateromatosas` | `Observation`/`Condition` placa carotídea SNOMED `(verificar)` | Eco-Doppler de vasos de cuello |
 | `Femorales normales/ateromatosas` | `Observation`/`Condition` ateromatosis femoral | — |
 | `HAI`, `ELISA`, `Anticuerpos`, `IFI` | `DiagnosticReport` serología **Chagas** + `Observation` por técnica | HAI `LOINC 16949-2 (verificar)`, ELISA T. cruzi, IFI. Relevante en cardiopatía chagásica AR |
-| `Total` | revisar semántica con clínico | Probable total/score agregado — no mapear hasta confirmar |
+| `Total` (columna CY) | `Observation` `LOCAL .../vascular-doppler#atheromatosis-artery-count` `valueInteger` | Nº total de arterias con ateromatosis (confirmado). Derivable de los hallazgos carotídeos/femorales individuales |
 
 ---
 
@@ -184,7 +184,7 @@ Una `Condition` por antecedente. `clinicalStatus`, `verificationStatus`, categor
 | `DLP` / `Dx reciente DLP` / `DLP controlada` | `E78.5` | `370992007` | — |
 | `DBT`/`DLP` controladas | `Goal` + `Observation` de control | — | Estado de control → `Goal.achievementStatus` |
 | `AHF` | `FamilyMemberHistory` | — | Antecedentes heredofamiliares (no es Condition del paciente) |
-| `SDT` (sedentarismo) | `Observation` `LOCAL` o SNOMED `415510005` | — | Confirmar significado de `SDT` con clínico |
+| `SDT` (sedentarismo) | `Observation` actividad física (SNOMED `415510005` sedentary lifestyle) | — | Sedentarismo (confirmado) |
 | `Drogas de abuso` | `Z72.2` / `Condition` SNOMED `(verificar)` | — | — |
 | `IC FEy pre` (IC FE preservada) | `I50.31/I50.32` | `446221000` HFpEF | — |
 | `IC FEy red` (IC FE reducida) | `I50.21/I50.22` | `703272007` HFrEF | — |
@@ -241,7 +241,7 @@ Cada familia citostática = `MedicationStatement` (o `MedicationAdministration` 
 |---|---|---|
 | `Tipo de cancer` | `Condition` ICD-10 `C00–C97` (+ ICD-O-3 morfología) | Diagnóstico oncológico primario; referenciado por `EpisodeOfCare.diagnosis` |
 | `Estadio` | `Observation` estadio TNM (LOINC `21908-9` Stage group) o `Condition.stage` | — |
-| `Grupo` / `Sub grupo` | `Condition.stage` adicional / extensión clínica | Confirmar taxonomía con oncología |
+| `Grupo` / `Sub grupo` | `Condition.code` del cáncer (jerarquía ICD-10 / ICD-O) + `LOCAL .../CodeSystem/cancer-group` | Clasificación por tipo de cáncer (hoja *Datos extra*): ej. Grupo "cáncer linfático" → Subgrupo "Linfoma Hodgkin / no Hodgkin". Grupo ≈ categoría ICD-10 (p.ej. C81–C88), Subgrupo ≈ código específico (C81 Hodgkin, C82–C85 no Hodgkin) |
 
 ---
 
@@ -285,47 +285,78 @@ Estructura común:
 }
 ```
 
-### CodeSystem local de métodos — `.../CodeSystem/risk-score-method`
+### CodeSystems locales de métodos — `.../CodeSystem/risk-score-method`
+
+Dos familias de score:
+
+**(a) Riesgo cardiovascular general (10 / 30 años)** — resultado como `probabilityDecimal`:
 
 | Campo(s) tabla | `method.code` | Algoritmo | Categorías (de la tabla) |
 |---|---|---|---|
 | `PREVENT...`, `Prevent calculado` | `PREVENT-AHA-2023` | **AHA PREVENT 2023 — modelo completo** (riesgo CV total a 10 **y 30** años) | bajo <5 · intermedio 5–7.5 · moderado 7.5–10 · alto >10 |
-| `SAC`, `SAC calculado` | `SAC` | Score Sociedad Argentina de Cardiología | bajo/moderado/alto |
 | `ESC` | `ESC-SCORE2` | ESC SCORE2 / SCORE2-OP | bajo/moderado/alto/muy alto |
-| `OPS`, `OPS calculado` | `OPS-PAHO` | Tablas OPS/OMS región AMR | por categoría |
+| `OPS`, `OPS calculado` | `OPS-PAHO` | Calculadora OPS/OMS HEARTS ([paho.org/cardioapp](https://www.paho.org/cardioapp/web/#/cvrisk), región AMR, **con colesterol**) | por categoría de color |
 | `Framingham`, `Framingham calculado` | `FRAMINGHAM` | Framingham Risk Score | por categoría |
-| (HFA-ICOS ya existe) | `HFA-ICOS-ESC-2022` | CTRCD ESC 2022 | low/moderate/high/very-high |
+
+**(b) Riesgo de cardiotoxicidad (DVATC / CTRCD)** — resultado típicamente `qualitativeRisk`:
+
+| Campo(s) tabla | `method.code` | Algoritmo | Categorías |
+|---|---|---|---|
+| `SAC`, `SAC calculado` | `SAC-DVATC` | **Score de cardiotoxicidad SAC** — Consenso SAC (Tabla 2: factores de DVATC por tipo de tratamiento) | bajo/moderado/alto |
+| (ya implementado) | `HFA-ICOS-ESC-2022` | HFA-ICOS ESC 2022 (CTRCD) | low/moderate/high/very-high |
 
 > **Doble columna `X` / `X calculado`:** la tabla guarda el valor cargado a mano **y** el calculado. En FHIR ambos son `RiskAssessment` del mismo `method`; se distinguen por `RiskAssessment.performer` (humano vs Bot) y/o una extensión `.../risk-source = manual|computed`. El cálculo automático lo produce un **Bot Medplum** a partir del `basis`.
 
-### Inputs que cada score consume (mapeo → Observations/Conditions ya definidos)
+### Inputs — riesgo CV general (mapeo → Observations/Conditions ya definidos)
 
-| Input clínico | Origen FHIR | PREVENT | SAC | ESC SCORE2 | Framingham |
+| Input clínico | Origen FHIR | PREVENT | ESC SCORE2 | OPS/PAHO | Framingham |
 |---|---|:--:|:--:|:--:|:--:|
 | Edad | `Patient.birthDate` | ✓ | ✓ | ✓ | ✓ |
 | Sexo | `Patient.gender` | ✓ | ✓ | ✓ | ✓ |
-| Colesterol total | Obs `2093-3` | ✓ | ✓ | ✓ (no-HDL) | ✓ |
-| HDL | Obs `2085-9` | ✓ | ✓ | ✓ | ✓ |
+| Colesterol total | Obs `2093-3` | ✓ | ✓ (no-HDL) | ✓ | ✓ |
+| HDL | Obs `2085-9` | ✓ | ✓ | — | ✓ |
 | TAS | Obs `8480-6` | ✓ | ✓ | ✓ | ✓ |
 | Tto antihipertensivo | MedicationStatement `C02–C09` | ✓ | — | — | ✓ |
 | Tabaquismo | Obs `72166-2` | ✓ | ✓ | ✓ | ✓ |
 | Diabetes | Condition `E11` | ✓ | ✓ | ✓ | ✓ |
 | eGFR | Obs `98979-8` | ✓ | — | — | — |
 | HbA1c (modelo completo) | Obs `4548-4` | ✓ | — | — | — |
-| Índice albúmina/creatinina — UACR (`Microalb`) | Obs `14959-1` `(verificar)` | ✓ | — | — | — |
-| Índice de deprivación social (SDI, por código postal) | Obs/extensión SDOH `LOCAL` | ✓ | — | — | — |
+| UACR — índice albúmina/creatinina (`Microalb`) | Obs `14959-1` `(verificar)` | ✓ | — | — | — |
+| Deprivación social (SDI, por código postal) | Obs/extensión SDOH `LOCAL` | ✓ | — | — | — |
 | Uso de estatina | MedicationStatement `C10` | ✓ | — | — | — |
 | (modificador) Lp(a), IMC | Obs `10835-7` / `39156-5` | ✓ | — | — | — |
 
 > **PREVENT 2023 — modelo completo (definido):** además de la base, el cálculo a 10 **y 30** años usa **HbA1c**, **UACR** (campo `Microalb`) y **SDI** (deprivación social por código postal). El campo `Microalb` de la tabla pasa de microalbuminuria simple a alimentar el índice albúmina/creatinina; conviene registrar también creatinina urinaria para el cociente. SDI requiere el código postal del paciente (`Patient.address.postalCode`).
 
+### Inputs — SAC cardiotoxicidad (Consenso SAC, Tabla 2)
+
+El score SAC estratifica según los factores de DVATC presentes, **ponderados por el tipo de tratamiento** (`n/e` = no establecido):
+
+| Factor de riesgo DVATC | Origen FHIR | Antraciclinas | Anti-HER2 | Anti-VEGF |
+|---|---|:--:|:--:|:--:|
+| Genéticos | FamilyMemberHistory / Observation | ✓ | n/e | n/e |
+| Edad < 15 o > 65 | `Patient.birthDate` | ✓ | ✓ | n/e |
+| Género femenino | `Patient.gender` | ✓ | n/e | n/e |
+| HTA | Condition `I10` | ✓ | ✓ | ✓ |
+| Enfermedad coronaria | Condition `I25` | ✓ | ✓ | ✓ |
+| IRC | Obs eGFR `98979-8` | ✓ | no | no |
+| IMC > 30 | Obs `39156-5` / Condition `E66` | — | ✓ | — |
+| FEVI basal 50–55% | Obs `8806-2` | ✓ | ✓ | n/e |
+| DVATC / cardiopatía / ICC previa | Condition `I50` | ✓ | ✓ | ✓ |
+| QT* o RT concomitante/previa | MedicationStatement / Procedure | ✓ | ✓** | ✓ |
+| Dosis acumulada | Obs `cumulative-anthracycline-dose` | ✓ | no | no |
+
+\* alquilantes, antimicrotúbulos o inmunoterapia · \*\* en anti-HER2 incluye uso concomitante/reciente (< 3 meses) de antraciclinas.
+
+> ⚠️ La Tabla 2 aporta los **factores**, no los **umbrales**. El cut-point exacto (nº de factores → bajo/moderado/alto) se toma del texto de la pág. 34 del Consenso SAC en el paso de implementación.
+
 Las clases funcionales que la tabla lista junto a los scores se modelan como **Observation**, no como RiskAssessment:
 
-| Campo | LOINC / código | Valor |
-|---|---|---|
-| `ECOG` | `89247-1` ECOG performance status `(verificar)` | 0–4 |
-| `NYHA` | `LOCAL .../nyha-class` (SNOMED `420816009` `(verificar)`) | I–IV |
-| `KANSAS` (KCCQ) | `QuestionnaireResponse` KCCQ + `Observation` score resumen | 0–100 |
+| Campo | LOINC / código | Valor | Notas |
+|---|---|---|---|
+| `ECOG` | `89247-1` ECOG performance status `(verificar)` | 0–4 | — |
+| `NYHA` | `LOCAL .../nyha-class` (SNOMED `420816009` `(verificar)`) | I–IV | — |
+| `KANSAS` (KCCQ) | `QuestionnaireResponse` KCCQ + `Observation` score resumen | 0–100 | **Solo** en pacientes que desarrollan IC; hoy sin casos (campo vacío) |
 
 ---
 
