@@ -386,10 +386,13 @@ https://api.epa-bienestar.com.ar/fhir/StructureDefinition/risk-source    (manual
 1. **CodeSystems/ValueSets locales** (`data/core/`) para los códigos `LOCAL` y los métodos de score.
 2. **Diccionario de datos** `src/cardiotox-mapping/data-dictionary.ts` (machine-readable de este documento) — *incluido en este PR*.
 3. **Bot de ingesta** `Cardiotox row → Bundle FHIR` (migración de la tabla existente, idempotente vía `ifNoneExist`).
-4. **Motor de scores** (`src/cardiotox-mapping/scores/`): funciones puras → `RiskAssessment`, con fuente bibliográfica y tests.
-   - ✅ **PREVENT 2023** (`prevent.ts`): base + CKM (HbA1c, UACR), 10 y 30 años, ECV total y ASCVD. Coeficientes de Khan SS et al., *Circulation* 2024 (Tablas S12A–J), verificados contra caso publicado (`prevent.test.ts`). El modelo `full`/SDI (deprivación social por ZIP de EE.UU.) se excluye por no aplicar a Argentina.
-   - ⏳ Pendientes: `ESC SCORE2`, `Framingham`, `OPS/PAHO`, `SAC-DVATC` (según definición de umbrales).
-5. **Bot de recálculo**: al crear/actualizar las Observations de entrada → recalcula los `RiskAssessment` (performer = Bot).
-6. **UI**: panel "Scores de riesgo" en `PatientDetails` que muestre PREVENT + todos los scores al abrir un paciente en seguimiento (objetivo final).
+4. **Motor de scores** (`src/cardiotox-mapping/scores/`): funciones puras → `RiskAssessment`, con fuente bibliográfica y tests (41 tests, todos verdes).
+   - ✅ **PREVENT 2023** (`prevent.ts`): base + CKM (HbA1c, UACR), 10 y 30 años, ECV total y ASCVD. Coeficientes de Khan SS et al., *Circulation* 2024 (Tablas S12A–J), verificados contra caso publicado. Modelo `full`/SDI (deprivación social por ZIP de EE.UU.) excluido por no aplicar a Argentina.
+   - ✅ **Framingham 2008** (`framingham.ts`): ECV general 10 años. D'Agostino *Circulation* 2008. Verificado contra caso del paquete CVrisk.
+   - ✅ **ESC SCORE2 / SCORE2-OP** (`score2.ts`): ECV fatal+no fatal 10 años, recalibración por región. *Eur Heart J* 2021. Portado verbatim de RiskScorescvd. Argentina sin región oficial → parámetro `region`.
+   - ⛔ **OPS/PAHO** (WHO 2019 AMR-B): **bloqueado** — sin coeficientes públicos verificables (fuentes académicas dan 403; no hay implementación de código del modelo 2019 AMR-B). Requiere la tabla de la fuente o ejemplos input→output de la app PAHO para anclar.
+   - ⏳ **SAC-DVATC**: pendiente de los umbrales de la pág. 34 del Consenso SAC.
+5. ✅ **UI**: panel "Scores de Riesgo" (`RiskScoresPanel.tsx`, tab en `PatientDetails`) que precarga inputs desde FHIR y muestra PREVENT + Framingham + SCORE2 juntos, con OPS/SAC señalados como pendientes de fuente.
+6. **Bot de recálculo** (pendiente): al crear/actualizar las Observations de entrada → recalcula los `RiskAssessment` (performer = Bot).
 
-> ⚠️ Los coeficientes de cada algoritmo se implementan citando la fuente y con tests de casos publicados. PREVENT ya está hecho y verificado; el resto sigue igual criterio.
+> ⚠️ Los coeficientes de cada algoritmo se implementan **citando la fuente y con tests de casos publicados** — nunca a mano. Por eso OPS queda bloqueado hasta tener una fuente verificable.
