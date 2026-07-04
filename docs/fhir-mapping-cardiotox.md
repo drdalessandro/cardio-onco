@@ -386,8 +386,10 @@ https://api.epa-bienestar.com.ar/fhir/StructureDefinition/risk-source    (manual
 1. **CodeSystems/ValueSets locales** (`data/core/`) para los códigos `LOCAL` y los métodos de score.
 2. **Diccionario de datos** `src/cardiotox-mapping/data-dictionary.ts` (machine-readable de este documento) — *incluido en este PR*.
 3. **Bot de ingesta** `Cardiotox row → Bundle FHIR` (migración de la tabla existente, idempotente vía `ifNoneExist`).
-4. **Motor de scores** (`src/cardiotox-mapping/scores/`): funciones puras `PREVENT`, `SAC`, `ESC SCORE2`, `Framingham`, `OPS` → `RiskAssessment`. Cada una con su fuente bibliográfica y tests.
+4. **Motor de scores** (`src/cardiotox-mapping/scores/`): funciones puras → `RiskAssessment`, con fuente bibliográfica y tests.
+   - ✅ **PREVENT 2023** (`prevent.ts`): base + CKM (HbA1c, UACR), 10 y 30 años, ECV total y ASCVD. Coeficientes de Khan SS et al., *Circulation* 2024 (Tablas S12A–J), verificados contra caso publicado (`prevent.test.ts`). El modelo `full`/SDI (deprivación social por ZIP de EE.UU.) se excluye por no aplicar a Argentina.
+   - ⏳ Pendientes: `ESC SCORE2`, `Framingham`, `OPS/PAHO`, `SAC-DVATC` (según definición de umbrales).
 5. **Bot de recálculo**: al crear/actualizar las Observations de entrada → recalcula los `RiskAssessment` (performer = Bot).
 6. **UI**: panel "Scores de riesgo" en `PatientDetails` que muestre PREVENT + todos los scores al abrir un paciente en seguimiento (objetivo final).
 
-> ⚠️ Los coeficientes de cada algoritmo (PREVENT, Framingham, SCORE2, SAC, OPS) se implementarán citando la fuente y con tests de casos publicados, en el paso 4 — **no** se codifican hasta validar este mapeo clínicamente.
+> ⚠️ Los coeficientes de cada algoritmo se implementan citando la fuente y con tests de casos publicados. PREVENT ya está hecho y verificado; el resto sigue igual criterio.
