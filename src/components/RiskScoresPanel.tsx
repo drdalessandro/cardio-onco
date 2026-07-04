@@ -276,7 +276,7 @@ export function RiskScoresPanel({ patient }: RiskScoresPanelProps): JSX.Element 
           {results.globorisk.ok ? (
             <Stack gap={4}>
               <BigRisk percent={results.globorisk.value.risk10yr * 100} category={results.globorisk.value.category} label="10 años · ECV" />
-              <Text size="xs" c="dimmed">Globorisk (Ueda 2017), recalibrado Argentina. Variante por país — puede diferir de la app oficial OPS.</Text>
+              <Text size="xs" c="dimmed">Globorisk (Ueda 2017), recalibrado Argentina — implementación de referencia (la app oficial OPS está siendo discontinuada).</Text>
             </Stack>
           ) : <Missing reason={results.globorisk.reason} />}
         </ScoreCard>
