@@ -23,6 +23,7 @@ import { buildPreventRiskAssessment, computePrevent } from '../cardiotox-mapping
 import { buildFraminghamRiskAssessment, computeFramingham } from '../cardiotox-mapping/scores/framingham';
 import { buildScore2RiskAssessment, computeScore2, mgDlToMmolChol } from '../cardiotox-mapping/scores/score2';
 import type { Score2Region } from '../cardiotox-mapping/scores/score2';
+import { buildGloboriskRiskAssessment, computeGloborisk } from '../cardiotox-mapping/scores/globorisk';
 
 interface RiskScoresPanelProps {
   patient: Patient;
@@ -50,6 +51,7 @@ const CATEGORY_COLOR: Record<string, string> = {
   intermediate: 'yellow',
   moderate: 'orange',
   high: 'red',
+  'very-high': 'red.9',
 };
 
 function ageFromBirthDate(birthDate?: string): number | undefined {
@@ -170,6 +172,7 @@ export function RiskScoresPanel({ patient }: RiskScoresPanelProps): JSX.Element 
       if (results.prevent.ok) toSave.push(buildPreventRiskAssessment(results.prevent.value, subject, basisRefs));
       if (results.framingham.ok) toSave.push(buildFraminghamRiskAssessment(results.framingham.value, subject, basisRefs));
       if (results.score2.ok) toSave.push(buildScore2RiskAssessment(results.score2.value, subject, basisRefs));
+      if (results.globorisk.ok) toSave.push(buildGloboriskRiskAssessment(results.globorisk.value, subject, basisRefs));
 
       for (const ra of toSave) {
         await medplum.createResource(ra);
@@ -188,7 +191,7 @@ export function RiskScoresPanel({ patient }: RiskScoresPanelProps): JSX.Element 
     }
   }
 
-  const anyOk = results.prevent.ok || results.framingham.ok || results.score2.ok;
+  const anyOk = results.prevent.ok || results.framingham.ok || results.score2.ok || results.globorisk.ok;
 
   return (
     <Stack p="xs" gap="lg">
@@ -268,9 +271,14 @@ export function RiskScoresPanel({ patient }: RiskScoresPanelProps): JSX.Element 
           ) : <Missing reason={results.score2.reason} />}
         </ScoreCard>
 
-        {/* OPS — pendiente */}
-        <ScoreCard title="OPS / PAHO" subtitle="OMS 2019 · Región B">
-          <Pending reason="Pendiente: coeficientes del modelo OMS 2019 AMR-B (no publicados como código verificable). Requiere la tabla de la fuente o ejemplos input→output de la app PAHO." />
+        {/* OPS / Globorisk */}
+        <ScoreCard title="OPS / Globorisk" subtitle="Motor OPS/OMS · Argentina">
+          {results.globorisk.ok ? (
+            <Stack gap={4}>
+              <BigRisk percent={results.globorisk.value.risk10yr * 100} category={results.globorisk.value.category} label="10 años · ECV" />
+              <Text size="xs" c="dimmed">Globorisk (Ueda 2017), recalibrado Argentina. Variante por país — puede diferir de la app oficial OPS.</Text>
+            </Stack>
+          ) : <Missing reason={results.globorisk.reason} />}
         </ScoreCard>
 
         {/* SAC — pendiente */}
@@ -340,6 +348,7 @@ function computeAll(i: ClinicalInputs): {
   prevent: ScoreOutcome<ReturnType<typeof computePrevent>>;
   framingham: ScoreOutcome<ReturnType<typeof computeFramingham>>;
   score2: ScoreOutcome<ReturnType<typeof computeScore2>>;
+  globorisk: ScoreOutcome<ReturnType<typeof computeGloborisk>>;
 } {
   const need = (...vals: Array<number | undefined>): boolean => vals.every((v) => typeof v === 'number' && !Number.isNaN(v));
 
@@ -365,5 +374,12 @@ function computeAll(i: ClinicalInputs): {
       }, i.score2Region))
     : { ok: false as const, reason: 'Faltan datos (colesterol, HDL, TAS).' };
 
-  return { prevent, framingham, score2 };
+  const globorisk = need(i.totalChol, i.sbp)
+    ? safe(() => computeGloborisk({
+        age: i.age, sex: i.sex, systolicBP: i.sbp as number,
+        totalCholesterol: mgDlToMmolChol(i.totalChol as number), diabetes: i.diabetes, smoking: i.smoking,
+      }))
+    : { ok: false as const, reason: 'Faltan datos (colesterol, TAS).' };
+
+  return { prevent, framingham, score2, globorisk };
 }

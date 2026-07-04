@@ -225,6 +225,7 @@ export type RiskScoreMethod =
   | 'SAC-DVATC'
   | 'ESC-SCORE2'
   | 'OPS-PAHO'
+  | 'GLOBORISK'
   | 'FRAMINGHAM'
   | 'HFA-ICOS-ESC-2022';
 
@@ -267,6 +268,14 @@ export const RISK_SCORES: Record<RiskScoreMethod, RiskScoreDef> = {
     method: 'OPS-PAHO',
     family: 'cv-general',
     display: 'Calculadora OPS/OMS HEARTS (paho.org/cardioapp, Región B de las Américas, con colesterol)',
+    sourceFields: ['OPS', 'OPS calculado'],
+    inputs: ['age', 'sex', 'systolicBP', 'smokingStatus', 'diabetes', 'cholesterolTotal'],
+  },
+  // Motor Globorisk (base de las cartas OPS/OMS), recalibrado para Argentina.
+  GLOBORISK: {
+    method: 'GLOBORISK',
+    family: 'cv-general',
+    display: 'Globorisk (motor de las cartas OPS/OMS) — recalibrado Argentina, modelo laboratorio',
     sourceFields: ['OPS', 'OPS calculado'],
     inputs: ['age', 'sex', 'systolicBP', 'smokingStatus', 'diabetes', 'cholesterolTotal'],
   },
