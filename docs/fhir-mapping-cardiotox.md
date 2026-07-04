@@ -295,7 +295,7 @@ Dos familias de score:
 |---|---|---|---|
 | `PREVENT...`, `Prevent calculado` | `PREVENT-AHA-2023` | **AHA PREVENT 2023 — modelo completo** (riesgo CV total a 10 **y 30** años) | bajo <5 · intermedio 5–7.5 · moderado 7.5–10 · alto >10 |
 | `ESC` | `ESC-SCORE2` | ESC SCORE2 / SCORE2-OP | bajo/moderado/alto/muy alto |
-| `OPS`, `OPS calculado` | `OPS-PAHO` | Calculadora OPS/OMS HEARTS ([paho.org/cardioapp](https://www.paho.org/cardioapp/web/#/cvrisk), región AMR, **con colesterol**) | por categoría de color |
+| `OPS`, `OPS calculado` | `OPS-PAHO` | Calculadora OPS/OMS HEARTS ([paho.org/cardioapp](https://www.paho.org/cardioapp/web/#/cvrisk), **Región B de las Américas**, con colesterol) — **recomendada por el Consenso SAC** de Cardio-Oncología y el MinSalud de la Nación | por categoría de color |
 | `Framingham`, `Framingham calculado` | `FRAMINGHAM` | Framingham Risk Score | por categoría |
 
 **(b) Riesgo de cardiotoxicidad (DVATC / CTRCD)** — resultado típicamente `qualitativeRisk`:
@@ -348,7 +348,10 @@ El score SAC estratifica según los factores de DVATC presentes, **ponderados po
 
 \* alquilantes, antimicrotúbulos o inmunoterapia · \*\* en anti-HER2 incluye uso concomitante/reciente (< 3 meses) de antraciclinas.
 
-> ⚠️ La Tabla 2 aporta los **factores**, no los **umbrales**. El cut-point exacto (nº de factores → bajo/moderado/alto) se toma del texto de la pág. 34 del Consenso SAC en el paso de implementación.
+> ⚠️ **Tabla 2 = factores, no umbrales.** La tabla (Consenso SAC de Cardio-Oncología, pág. 34) define qué factores cuentan para cada tipo de tratamiento, pero **no** un cut-point numérico bajo/moderado/alto. Según el propio Consenso, la estratificación basal de DVATC se alinea con el marco **ESC 2022 / HFA-ICOS** (que la app ya implementa). Decisiones de implementación de `SAC-DVATC`:
+> - **Inputs** (autoritativo, de Tabla 2): factores presentes ponderados por tipo de tratamiento → `RiskAssessment.basis`.
+> - **Categorización** (a definir con el clínico): (a) usar el marco ESC 2022/HFA-ICOS ya existente, o (b) cargar el cut-point textual exacto de la pág. 34 si el Consenso lo define aparte.
+> - **Riesgo CV general** en el Consenso SAC → score **OMS/OPS Región B de las Américas** (= `OPS-PAHO`). Fuente: [Consenso de Cardio-Oncología SAC](https://www.sac.org.ar/wp-content/uploads/2025/06/Consenso-de-Cardio-Oncologia.pdf).
 
 Las clases funcionales que la tabla lista junto a los scores se modelan como **Observation**, no como RiskAssessment:
 

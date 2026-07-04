@@ -266,7 +266,7 @@ export const RISK_SCORES: Record<RiskScoreMethod, RiskScoreDef> = {
   'OPS-PAHO': {
     method: 'OPS-PAHO',
     family: 'cv-general',
-    display: 'Calculadora OPS/OMS HEARTS (paho.org/cardioapp, región AMR, con colesterol)',
+    display: 'Calculadora OPS/OMS HEARTS (paho.org/cardioapp, Región B de las Américas, con colesterol)',
     sourceFields: ['OPS', 'OPS calculado'],
     inputs: ['age', 'sex', 'systolicBP', 'smokingStatus', 'diabetes', 'cholesterolTotal'],
   },
