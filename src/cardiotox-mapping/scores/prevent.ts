@@ -20,6 +20,7 @@
 
 import type { Reference, RiskAssessment } from '@medplum/fhirtypes';
 import { SYSTEMS, riskMethodConcept } from '../data-dictionary';
+import { pct } from './common';
 import { PREVENT_COEFFS } from './prevent-coefficients';
 import type { PreventModel, PreventSex } from './prevent-coefficients';
 
@@ -189,10 +190,6 @@ const CATEGORY_LABEL: Record<PreventCategory, string> = {
   moderate: 'Moderado (7,5–10%)',
   high: 'Alto (>10%)',
 };
-
-function pct(x: number): number {
-  return Math.round(x * 1000) / 10; // proporción → % con 1 decimal
-}
 
 /**
  * Construye un `RiskAssessment` FHIR a partir del resultado PREVENT.
