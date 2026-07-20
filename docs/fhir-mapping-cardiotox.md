@@ -3,7 +3,7 @@
 > Proyecto **Favaloro | Medplum Argentina** · Servidor FHIR R4 Medplum en `https://api.medplum.com.ar`
 > Plataforma Cardio-Onco · Guías ESC 2022 de Cardio-Oncología
 >
-> **Estado:** especificación v0.2 — revisada con el autor (significado de campos, SAC como score de cardiotoxicidad, PREVENT modelo completo). Lista para pasar al motor de scores.
+> **Estado:** especificación v0.3 — motor de scores implementado (PREVENT/Framingham/SCORE2/Globorisk) + **modelo relacional del workbook documentado** (9 hojas unidas por DNI). Cardiotox confirmada en 159 columnas exactas.
 
 ---
 
@@ -34,6 +34,31 @@
 | **RiskAssessment** | **Todos los scores de riesgo**: PREVENT, SAC, ESC, OPS, Framingham, HFA-ICOS |
 | **CarePlan / Task** | Protocolo de vigilancia por estrato (ya implementado) |
 | **Appointment** | Último control / próximo control |
+
+---
+
+## Modelo relacional del workbook — 9 hojas unidas por `DNI`
+
+La fuente **no es una tabla plana**: es un libro de cálculo **relacional** de 9 hojas, unidas por `DNI` (= `Patient.identifier`). La migración a FHIR hace *join* por `DNI` y arma **un** `Patient` longitudinal. `Cardiotox` es la hoja "spine" (foto basal, **159 columnas**); el resto aporta series temporales, tratamiento y taxonomías.
+
+| Hoja | Rol | Destino FHIR |
+|---|---|---|
+| **Cardiotox** (159 col) | Foto **basal** por paciente (spine) | `Patient` + `EpisodeOfCare` + Obs/Cond/Med/RiskAssessment basales |
+| **Ecocardiogramas_control** | eco basal + `Fecha eco control` × 6 | **Serie temporal de eco/FEVI** → `Observation` fechadas (`effectiveDateTime` = Fecha eco) |
+| **Estudios_Complementarios** | ECG serial por paciente | `Observation` de ECG fechadas |
+| **QT_cardiotox** | snapshot + `Fecha` + 2º bloque eco (foco QT) | `Observation` fechadas |
+| **FRCV** | **Capa de tratamiento CKM** (IECA/ARA2/ARNI, gliflozinas, GLP-1, estatinas, ezetimibe…) + objetivos + daño de órgano blanco | `MedicationStatement`/`Request` + `Goal` + `Observation`/`Condition` |
+| **Datos_extras** | Taxonomía de cáncer (Cabeza y cuello, Tórax… Linfático, LH, LNH) + estado (Activo/Deceso) | `Condition.code` + `Patient.active`/`deceased` |
+| **Datos_fármacos** | Familias de quimio × [SAC, ESC, OPS, Framingham, PREVENT] | **Probable lookup de puntajes por droga** — fuente del 0–4 de tratamiento de SAC |
+| **Estadísticas** | Conteos y % agregados | **no se migra** (reporte derivado) |
+| **Colores** | Leyenda de UI | ignorar |
+
+**Consecuencias de diseño:**
+- La duplicación `Trop inicial/seguimiento` y `eco inicial/control` es un parche de tabla plana; las hojas seriadas + FHIR lo resuelven nativo (**una `Observation` por medición y fecha**).
+- **FRCV = capa cardio-reno-metabólica (CKM):** gliflozinas y GLP-1 son las drogas insignia CKM → conecta directo con el proyecto CKM (staging, `Goal`, `MedicationRequest`).
+- **`Datos_fármacos`** probablemente contiene el puntaje de tratamiento por droga que falta para cerrar **SAC** (los 0–4 puntos de tratamiento). *Pendiente: sus valores.*
+- **Dos columnas PREVENT con umbrales distintos** en Cardiotox: col. 130 usa bandas **ASCVD estándar** (bajo <5 · limítrofe 5–7,4 · intermedio 7,5–19,9 · alto ≥20); col. 141 usa (bajo <5 · inter 5–7,5 · modera 7,5–10 · alto >10). `preventCategory()` implementó la **141** — *decidir cuál es la autoritativa* (la 130 es la clásica ACC/AHA).
+- **Migración:** el Bot no migra "Cardiotox sola"; hace *join* por `DNI` → `Patient` con basal (Cardiotox) + serie de FEVI (Ecocardiogramas_control) + serie de ECG (Estudios_Complementarios) + meds/objetivos CKM (FRCV).
 
 ---
 
