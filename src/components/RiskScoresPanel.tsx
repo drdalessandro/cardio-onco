@@ -48,7 +48,8 @@ interface ClinicalInputs {
 
 const CATEGORY_COLOR: Record<string, string> = {
   low: 'green',
-  intermediate: 'yellow',
+  borderline: 'yellow',
+  intermediate: 'orange',
   moderate: 'orange',
   high: 'red',
   'very-high': 'red.9',
@@ -247,11 +248,11 @@ export function RiskScoresPanel({ patient }: RiskScoresPanelProps): JSX.Element 
 
       <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
         {/* PREVENT */}
-        <ScoreCard title="PREVENT 2023" subtitle="ECV total (AHA)">
+        <ScoreCard title="PREVENT 2023" subtitle="ASCVD · banda ACC/AHA">
           {results.prevent.ok ? (
             <Stack gap={4}>
-              <BigRisk percent={results.prevent.value.tenYear.totalCvd * 100} category={results.prevent.value.category} label="10 años" />
-              <Text size="xs" c="dimmed">30 años: {(results.prevent.value.thirtyYear.totalCvd * 100).toFixed(1)}% · ASCVD 10a: {(results.prevent.value.tenYear.ascvd * 100).toFixed(1)}%</Text>
+              <BigRisk percent={results.prevent.value.tenYear.ascvd * 100} category={results.prevent.value.category} label="ASCVD 10 años" />
+              <Text size="xs" c="dimmed">ECV total 10a: {(results.prevent.value.tenYear.totalCvd * 100).toFixed(1)}% · ASCVD 30a: {(results.prevent.value.thirtyYear.ascvd * 100).toFixed(1)}%</Text>
               <Text size="xs" c="dimmed">Modelo: {results.prevent.value.model}</Text>
             </Stack>
           ) : <Missing reason={results.prevent.reason} />}

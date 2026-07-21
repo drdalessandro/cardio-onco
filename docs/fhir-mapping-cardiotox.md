@@ -57,7 +57,7 @@ La fuente **no es una tabla plana**: es un libro de cálculo **relacional** de 9
 - La duplicación `Trop inicial/seguimiento` y `eco inicial/control` es un parche de tabla plana; las hojas seriadas + FHIR lo resuelven nativo (**una `Observation` por medición y fecha**).
 - **FRCV = capa cardio-reno-metabólica (CKM):** gliflozinas y GLP-1 son las drogas insignia CKM → conecta directo con el proyecto CKM (staging, `Goal`, `MedicationRequest`).
 - **`Datos_fármacos`** probablemente contiene el puntaje de tratamiento por droga que falta para cerrar **SAC** (los 0–4 puntos de tratamiento). *Pendiente: sus valores.*
-- **Dos columnas PREVENT con umbrales distintos** en Cardiotox: col. 130 usa bandas **ASCVD estándar** (bajo <5 · limítrofe 5–7,4 · intermedio 7,5–19,9 · alto ≥20); col. 141 usa (bajo <5 · inter 5–7,5 · modera 7,5–10 · alto >10). `preventCategory()` implementó la **141** — *decidir cuál es la autoritativa* (la 130 es la clásica ACC/AHA).
+- **PREVENT — banda ASCVD estándar (resuelto).** De las dos columnas PREVENT de Cardiotox, la autoritativa (confirmada por el autor) es la **ASCVD estándar ACC/AHA**: **bajo <5 · límite 5–7,4 · intermedio 7,5–19,9 · alto ≥20**, aplicada al riesgo **ASCVD** a 10 años (no al ECV total). `preventCategory()` implementa esa banda; `preventCategoryAlt()` deja disponible la alternativa (bajo <5 · inter 5–7,5 · moderado 7,5–10 · alto >10) sobre el mismo % — ambas sobre un único valor calculado. Etiquetas del value-set (hoja `Datos_fármacos`): Bajo · Límite · Intermedio · Alto.
 - **Migración:** el Bot no migra "Cardiotox sola"; hace *join* por `DNI` → `Patient` con basal (Cardiotox) + serie de FEVI (Ecocardiogramas_control) + serie de ECG (Estudios_Complementarios) + meds/objetivos CKM (FRCV).
 
 ---

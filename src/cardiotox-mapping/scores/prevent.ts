@@ -53,14 +53,19 @@ export interface PreventRisk {
   ascvd: number; // enfermedad cardiovascular aterosclerótica
 }
 
-export type PreventCategory = 'low' | 'intermediate' | 'moderate' | 'high';
+/** Categoría ASCVD estándar (ACC/AHA) — banda primaria. */
+export type PreventCategory = 'low' | 'borderline' | 'intermediate' | 'high';
+/** Banda alternativa (más agresiva, >10 % = alto). */
+export type PreventCategoryAlt = 'low' | 'intermediate' | 'moderate' | 'high';
 
 export interface PreventResult {
   model: PreventModel; // modelo efectivamente usado
   tenYear: PreventRisk;
   thirtyYear: PreventRisk;
-  /** Categoría de la tabla Cardiotox sobre ECV total a 10 años (%). */
+  /** Categoría ASCVD estándar (primaria) sobre el riesgo **ASCVD** a 10 años (%). */
   category: PreventCategory;
+  /** Banda alternativa (bajo <5 · inter 5–7,5 · moderado 7,5–10 · alto >10) sobre ASCVD a 10 años. */
+  categoryAlt: PreventCategoryAlt;
 }
 
 /** Redondeo "half up" (aleja de cero en el empate), como la implementación de referencia. */
@@ -69,11 +74,26 @@ function roundHalfUp(x: number, digits = 3): number {
   return (Math.sign(x) * Math.round(Math.abs(x) * f)) / f;
 }
 
-/** Categoría según los umbrales de la tabla: bajo <5, inter 5–7.5, moderado 7.5–10, alto >10. */
-export function preventCategory(tenYearTotalCvdPercent: number): PreventCategory {
-  if (tenYearTotalCvdPercent < 5) return 'low';
-  if (tenYearTotalCvdPercent < 7.5) return 'intermediate';
-  if (tenYearTotalCvdPercent <= 10) return 'moderate';
+/**
+ * Categoría ASCVD estándar ACC/AHA (banda primaria, confirmada por el autor):
+ * bajo <5 % · límite 5–7,4 % · intermedio 7,5–19,9 % · alto ≥20 %.
+ * Se aplica al riesgo **ASCVD** a 10 años.
+ */
+export function preventCategory(ascvdPercent: number): PreventCategory {
+  if (ascvdPercent < 5) return 'low';
+  if (ascvdPercent < 7.5) return 'borderline';
+  if (ascvdPercent < 20) return 'intermediate';
+  return 'high';
+}
+
+/**
+ * Banda alternativa (más agresiva) sobre el mismo % ASCVD:
+ * bajo <5 · inter 5–7,5 · moderado 7,5–10 · alto >10.
+ */
+export function preventCategoryAlt(ascvdPercent: number): PreventCategoryAlt {
+  if (ascvdPercent < 5) return 'low';
+  if (ascvdPercent < 7.5) return 'intermediate';
+  if (ascvdPercent <= 10) return 'moderate';
   return 'high';
 }
 
@@ -180,15 +200,16 @@ export function computePrevent(input: PreventInput, modelOverride?: PreventModel
     model,
     tenYear,
     thirtyYear,
-    category: preventCategory(tenYear.totalCvd * 100),
+    category: preventCategory(tenYear.ascvd * 100),
+    categoryAlt: preventCategoryAlt(tenYear.ascvd * 100),
   };
 }
 
 const CATEGORY_LABEL: Record<PreventCategory, string> = {
   low: 'Bajo (<5%)',
-  intermediate: 'Intermedio (5–7,5%)',
-  moderate: 'Moderado (7,5–10%)',
-  high: 'Alto (>10%)',
+  borderline: 'Límite (5–7,4%)',
+  intermediate: 'Intermedio (7,5–19,9%)',
+  high: 'Alto (≥20%)',
 };
 
 /**
@@ -212,27 +233,28 @@ export function buildPreventRiskAssessment(
     basis: basis.length > 0 ? basis : undefined,
     prediction: [
       {
-        outcome: { text: 'ECV total a 10 años' },
-        probabilityDecimal: pct(result.tenYear.totalCvd),
+        // La categoría (banda ASCVD estándar) se ancla a la predicción ASCVD a 10 años.
+        outcome: { text: 'ASCVD a 10 años' },
+        probabilityDecimal: pct(result.tenYear.ascvd),
         qualitativeRisk: {
-          coding: [{ system: SYSTEMS.riskScoreMethod, code: `prevent-${result.category}` }],
+          coding: [{ system: SYSTEMS.riskScoreMethod, code: `prevent-ascvd-${result.category}` }],
           text: CATEGORY_LABEL[result.category],
         },
         whenRange: { high: { value: 10, unit: 'a', system: SYSTEMS.ucum, code: 'a' } },
       },
       {
-        outcome: { text: 'ASCVD a 10 años' },
-        probabilityDecimal: pct(result.tenYear.ascvd),
+        outcome: { text: 'ECV total a 10 años' },
+        probabilityDecimal: pct(result.tenYear.totalCvd),
         whenRange: { high: { value: 10, unit: 'a', system: SYSTEMS.ucum, code: 'a' } },
-      },
-      {
-        outcome: { text: 'ECV total a 30 años' },
-        probabilityDecimal: pct(result.thirtyYear.totalCvd),
-        whenRange: { high: { value: 30, unit: 'a', system: SYSTEMS.ucum, code: 'a' } },
       },
       {
         outcome: { text: 'ASCVD a 30 años' },
         probabilityDecimal: pct(result.thirtyYear.ascvd),
+        whenRange: { high: { value: 30, unit: 'a', system: SYSTEMS.ucum, code: 'a' } },
+      },
+      {
+        outcome: { text: 'ECV total a 30 años' },
+        probabilityDecimal: pct(result.thirtyYear.totalCvd),
         whenRange: { high: { value: 30, unit: 'a', system: SYSTEMS.ucum, code: 'a' } },
       },
     ],
@@ -240,8 +262,8 @@ export function buildPreventRiskAssessment(
       {
         text:
           `AHA PREVENT 2023 (modelo ${result.model}). ` +
-          `ECV total 10a: ${pct(result.tenYear.totalCvd)}% — ${CATEGORY_LABEL[result.category]}. ` +
-          `ECV total 30a: ${pct(result.thirtyYear.totalCvd)}%. ` +
+          `ASCVD 10a: ${pct(result.tenYear.ascvd)}% — ${CATEGORY_LABEL[result.category]} (banda ASCVD estándar). ` +
+          `ECV total 10a: ${pct(result.tenYear.totalCvd)}% · ASCVD 30a: ${pct(result.thirtyYear.ascvd)}%. ` +
           `Calculado por el motor de scores Cardio-Onco.`,
       },
     ],
