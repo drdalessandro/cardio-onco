@@ -10,7 +10,7 @@
  */
 import {
   Alert, Badge, Button, Card, Divider, Group, Loader, NumberInput, SimpleGrid,
-  Stack, Switch, Select, Text, Title, Tooltip,
+  Stack, Switch, Select, Text, Title,
 } from '@mantine/core';
 import { showNotification } from '@mantine/notifications';
 import { getReferenceString, normalizeErrorString } from '@medplum/core';
@@ -24,6 +24,8 @@ import { buildFraminghamRiskAssessment, computeFramingham } from '../cardiotox-m
 import { buildScore2RiskAssessment, computeScore2, mgDlToMmolChol } from '../cardiotox-mapping/scores/score2';
 import type { Score2Region } from '../cardiotox-mapping/scores/score2';
 import { buildGloboriskRiskAssessment, computeGloborisk } from '../cardiotox-mapping/scores/globorisk';
+import { buildSacRiskAssessment, computeSac } from '../cardiotox-mapping/scores/sac';
+import type { SacTreatment } from '../cardiotox-mapping/scores/sac';
 
 interface RiskScoresPanelProps {
   patient: Patient;
@@ -44,6 +46,7 @@ interface ClinicalInputs {
   bpTreated: boolean;
   statin: boolean;
   score2Region: Score2Region;
+  sacTreatment: 'none' | SacTreatment;
 }
 
 const CATEGORY_COLOR: Record<string, string> = {
@@ -53,6 +56,13 @@ const CATEGORY_COLOR: Record<string, string> = {
   moderate: 'orange',
   high: 'red',
   'very-high': 'red.9',
+};
+
+const SAC_LABEL: Record<string, string> = {
+  low: 'Bajo',
+  intermediate: 'Intermedio',
+  high: 'Alto',
+  'very-high': 'Muy alto',
 };
 
 function ageFromBirthDate(birthDate?: string): number | undefined {
@@ -135,6 +145,7 @@ export function RiskScoresPanel({ patient }: RiskScoresPanelProps): JSX.Element 
         bpTreated: false,
         statin: false,
         score2Region: 'Low',
+        sacTreatment: 'none',
       });
       setLoading(false);
     }
@@ -174,6 +185,7 @@ export function RiskScoresPanel({ patient }: RiskScoresPanelProps): JSX.Element 
       if (results.framingham.ok) toSave.push(buildFraminghamRiskAssessment(results.framingham.value, subject, basisRefs));
       if (results.score2.ok) toSave.push(buildScore2RiskAssessment(results.score2.value, subject, basisRefs));
       if (results.globorisk.ok) toSave.push(buildGloboriskRiskAssessment(results.globorisk.value, subject, basisRefs));
+      if (results.sac.ok) toSave.push(buildSacRiskAssessment(results.sac.value, subject, basisRefs));
 
       for (const ra of toSave) {
         await medplum.createResource(ra);
@@ -192,7 +204,7 @@ export function RiskScoresPanel({ patient }: RiskScoresPanelProps): JSX.Element 
     }
   }
 
-  const anyOk = results.prevent.ok || results.framingham.ok || results.score2.ok || results.globorisk.ok;
+  const anyOk = results.prevent.ok || results.framingham.ok || results.score2.ok || results.globorisk.ok || results.sac.ok;
 
   return (
     <Stack p="xs" gap="lg">
@@ -235,6 +247,14 @@ export function RiskScoresPanel({ patient }: RiskScoresPanelProps): JSX.Element 
           <Select label="Región SCORE2" value={inputs.score2Region}
             data={['Low', 'Moderate', 'High', 'Very high'].map((r) => ({ value: r, label: r }))}
             onChange={(v) => set('score2Region', (v as Score2Region) ?? 'Low')} />
+          <Select label="Tratamiento (SAC)" value={inputs.sacTreatment}
+            data={[
+              { value: 'none', label: 'Sin tratamiento cardiotóxico' },
+              { value: 'anthracycline', label: 'Antraciclinas' },
+              { value: 'anti-her2', label: 'Anti-HER2' },
+              { value: 'anti-vegf', label: 'Anti-VEGF' },
+            ]}
+            onChange={(v) => set('sacTreatment', (v as 'none' | SacTreatment) ?? 'none')} />
         </SimpleGrid>
         <Group mt="md" gap="lg">
           <Switch label="Diabetes" checked={inputs.diabetes} onChange={(e) => set('diabetes', e.currentTarget.checked)} />
@@ -282,9 +302,28 @@ export function RiskScoresPanel({ patient }: RiskScoresPanelProps): JSX.Element 
           ) : <Missing reason={results.globorisk.reason} />}
         </ScoreCard>
 
-        {/* SAC — pendiente */}
+        {/* SAC (cardiotoxicidad) — provisional */}
         <ScoreCard title="SAC (cardiotoxicidad)" subtitle="Consenso SAC · DVATC">
-          <Pending reason="Pendiente: umbrales bajo/moderado/alto de la pág. 34 del Consenso SAC (la Tabla 2 aporta factores, no cut-points)." />
+          {results.sac.ok ? (
+            <Stack gap={4}>
+              <Group justify="space-between" align="center">
+                <div>
+                  <Text size="1.8rem" fw={700} c={CATEGORY_COLOR[results.sac.value.category] ?? 'gray'}>
+                    {results.sac.value.total} pts
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    paciente {results.sac.value.patientPoints} + trat. {results.sac.value.treatmentPoints}
+                  </Text>
+                </div>
+                <Badge color={CATEGORY_COLOR[results.sac.value.category] ?? 'gray'} variant="filled" size="lg">
+                  {SAC_LABEL[results.sac.value.category]}
+                </Badge>
+              </Group>
+              {results.sac.value.provisional && (
+                <Text size="xs" c="orange">⚠ Puntos de tratamiento provisionales (pendiente cita del Consenso).</Text>
+              )}
+            </Stack>
+          ) : <Missing reason={results.sac.reason} />}
         </ScoreCard>
       </SimpleGrid>
 
@@ -325,14 +364,6 @@ function Missing({ reason }: { reason: string }): JSX.Element {
   return <Text size="sm" c="dimmed"><IconAlertTriangle size={14} style={{ verticalAlign: 'middle' }} /> {reason}</Text>;
 }
 
-function Pending({ reason }: { reason: string }): JSX.Element {
-  return (
-    <Tooltip label={reason} multiline w={280} withArrow>
-      <Badge color="gray" variant="light">Pendiente de fuente</Badge>
-    </Tooltip>
-  );
-}
-
 // ── Cálculo de todos los scores con manejo de errores ──
 
 type ScoreOutcome<T> = { ok: true; value: T } | { ok: false; reason: string };
@@ -350,6 +381,7 @@ function computeAll(i: ClinicalInputs): {
   framingham: ScoreOutcome<ReturnType<typeof computeFramingham>>;
   score2: ScoreOutcome<ReturnType<typeof computeScore2>>;
   globorisk: ScoreOutcome<ReturnType<typeof computeGloborisk>>;
+  sac: ScoreOutcome<ReturnType<typeof computeSac>>;
 } {
   const need = (...vals: Array<number | undefined>): boolean => vals.every((v) => typeof v === 'number' && !Number.isNaN(v));
 
@@ -382,5 +414,16 @@ function computeAll(i: ClinicalInputs): {
       }))
     : { ok: false as const, reason: 'Faltan datos (colesterol, TAS).' };
 
-  return { prevent, framingham, score2, globorisk };
+  // SAC (cardiotoxicidad): factores derivables del panel; el resto requiere ajuste clínico.
+  const sac = i.sacTreatment !== 'none'
+    ? safe(() => computeSac({
+        treatment: i.sacTreatment as SacTreatment,
+        female: i.sex === 'female',
+        ageUnder15OrOver65: i.age < 15 || i.age > 65,
+        obesity: typeof i.bmi === 'number' && i.bmi >= 30,
+        ckd: typeof i.egfr === 'number' && i.egfr < 60,
+      }))
+    : { ok: false as const, reason: 'Seleccioná el tipo de tratamiento oncológico.' };
+
+  return { prevent, framingham, score2, globorisk, sac };
 }
