@@ -12,7 +12,7 @@
  * coeficientes autoritativos.
  */
 import { describe, expect, it } from 'vitest';
-import { computePrevent, preventCategory, buildPreventRiskAssessment } from './prevent';
+import { computePrevent, preventCategory, preventCategoryAlt, buildPreventRiskAssessment } from './prevent';
 import type { PreventInput } from './prevent';
 
 const readmeCase: PreventInput = {
@@ -42,8 +42,11 @@ describe('computePrevent — caso publicado de referencia (base, mujer)', () => 
     expect(r.thirtyYear.ascvd).toBeCloseTo(0.354232, 4);
   });
 
-  it('categoriza 14,7% como alto (>10%)', () => {
-    expect(r.category).toBe('high');
+  it('categoriza el ASCVD 9,2% como intermedio (banda ASCVD 7,5–19,9%)', () => {
+    expect(r.category).toBe('intermediate');
+  });
+  it('banda alternativa: ASCVD 9,2% → moderado (7,5–10%)', () => {
+    expect(r.categoryAlt).toBe('moderate');
   });
 });
 
@@ -95,17 +98,27 @@ describe('computePrevent — modelo CKM con UACR (hombre)', () => {
   });
 });
 
-describe('preventCategory — umbrales de la tabla Cardiotox', () => {
+describe('preventCategory — banda ASCVD estándar (primaria)', () => {
   it('bajo <5', () => expect(preventCategory(4.9)).toBe('low'));
-  it('intermedio 5–7,5', () => {
-    expect(preventCategory(5)).toBe('intermediate');
-    expect(preventCategory(7.4)).toBe('intermediate');
+  it('límite 5–7,4', () => {
+    expect(preventCategory(5)).toBe('borderline');
+    expect(preventCategory(7.4)).toBe('borderline');
   });
+  it('intermedio 7,5–19,9', () => {
+    expect(preventCategory(7.5)).toBe('intermediate');
+    expect(preventCategory(19.9)).toBe('intermediate');
+  });
+  it('alto ≥20', () => expect(preventCategory(20)).toBe('high'));
+});
+
+describe('preventCategoryAlt — banda alternativa (>10 = alto)', () => {
+  it('bajo <5', () => expect(preventCategoryAlt(4.9)).toBe('low'));
+  it('intermedio 5–7,5', () => expect(preventCategoryAlt(7.4)).toBe('intermediate'));
   it('moderado 7,5–10', () => {
-    expect(preventCategory(7.5)).toBe('moderate');
-    expect(preventCategory(10)).toBe('moderate');
+    expect(preventCategoryAlt(7.5)).toBe('moderate');
+    expect(preventCategoryAlt(10)).toBe('moderate');
   });
-  it('alto >10', () => expect(preventCategory(10.1)).toBe('high'));
+  it('alto >10', () => expect(preventCategoryAlt(10.1)).toBe('high'));
 });
 
 describe('computePrevent — validación de rango etario', () => {
@@ -129,9 +142,11 @@ describe('buildPreventRiskAssessment', () => {
     expect(ra.subject.reference).toBe('Patient/123');
   });
 
-  it('incluye 4 predicciones (ECV total y ASCVD, 10 y 30 años)', () => {
+  it('incluye 4 predicciones; la 1ª es ASCVD 10a con la categoría', () => {
     expect(ra.prediction).toHaveLength(4);
-    expect(ra.prediction?.[0]?.probabilityDecimal).toBe(14.7);
+    expect(ra.prediction?.[0]?.outcome?.text).toContain('ASCVD a 10');
+    expect(ra.prediction?.[0]?.probabilityDecimal).toBe(9.2);
+    expect(ra.prediction?.[0]?.qualitativeRisk?.text).toContain('Intermedio');
   });
 
   it('propaga el basis para trazabilidad', () => {

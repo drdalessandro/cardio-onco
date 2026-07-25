@@ -3,7 +3,7 @@
 > Proyecto **Favaloro | Medplum Argentina** · Servidor FHIR R4 Medplum en `https://api.medplum.com.ar`
 > Plataforma Cardio-Onco · Guías ESC 2022 de Cardio-Oncología
 >
-> **Estado:** especificación v0.2 — revisada con el autor (significado de campos, SAC como score de cardiotoxicidad, PREVENT modelo completo). Lista para pasar al motor de scores.
+> **Estado:** especificación v0.3 — motor de scores implementado (PREVENT/Framingham/SCORE2/Globorisk) + **modelo relacional del workbook documentado** (9 hojas unidas por DNI). Cardiotox confirmada en 159 columnas exactas.
 
 ---
 
@@ -34,6 +34,32 @@
 | **RiskAssessment** | **Todos los scores de riesgo**: PREVENT, SAC, ESC, OPS, Framingham, HFA-ICOS |
 | **CarePlan / Task** | Protocolo de vigilancia por estrato (ya implementado) |
 | **Appointment** | Último control / próximo control |
+
+---
+
+## Modelo relacional del workbook — 9 hojas unidas por `DNI`
+
+La fuente **no es una tabla plana**: es un libro de cálculo **relacional** de 9 hojas, unidas por `DNI` (= `Patient.identifier`). La migración a FHIR hace *join* por `DNI` y arma **un** `Patient` longitudinal. `Cardiotox` es la hoja "spine" (foto basal, **159 columnas**); el resto aporta series temporales, tratamiento y taxonomías.
+
+| Hoja | Rol | Destino FHIR |
+|---|---|---|
+| **Cardiotox** (159 col) | Foto **basal** por paciente (spine) | `Patient` + `EpisodeOfCare` + Obs/Cond/Med/RiskAssessment basales |
+| **Ecocardiogramas_control** | eco basal + `Fecha eco control` × 6 | **Serie temporal de eco/FEVI** → `Observation` fechadas (`effectiveDateTime` = Fecha eco) |
+| **Estudios_Complementarios** | ECG serial por paciente | `Observation` de ECG fechadas |
+| **QT_cardiotox** | snapshot + `Fecha` + 2º bloque eco (foco QT) | `Observation` fechadas |
+| **FRCV** | **Capa de tratamiento CKM** (IECA/ARA2/ARNI, gliflozinas, GLP-1, estatinas, ezetimibe…) + objetivos + daño de órgano blanco | `MedicationStatement`/`Request` + `Goal` + `Observation`/`Condition` |
+| **Datos_extras** | Taxonomía de cáncer (Cabeza y cuello, Tórax… Linfático, LH, LNH) + estado (Activo/Deceso) | `Condition.code` + `Patient.active`/`deceased` |
+| **Datos_fármacos** | Familias de quimio × [SAC, ESC, OPS, Framingham, PREVENT] | **Probable lookup de puntajes por droga** — fuente del 0–4 de tratamiento de SAC |
+| **Estadísticas** | Conteos y % agregados | **no se migra** (reporte derivado) |
+| **Colores** | Leyenda de UI | ignorar |
+
+**Consecuencias de diseño:**
+- La duplicación `Trop inicial/seguimiento` y `eco inicial/control` es un parche de tabla plana; las hojas seriadas + FHIR lo resuelven nativo (**una `Observation` por medición y fecha**).
+- **FRCV = capa cardio-reno-metabólica (CKM):** gliflozinas y GLP-1 son las drogas insignia CKM → conecta directo con el proyecto CKM (staging, `Goal`, `MedicationRequest`).
+- **`Datos_fármacos`** probablemente contiene el puntaje de tratamiento por droga que falta para cerrar **SAC** (los 0–4 puntos de tratamiento). *Pendiente: sus valores.*
+- **PREVENT — banda ASCVD estándar (resuelto).** De las dos columnas PREVENT de Cardiotox, la autoritativa (confirmada por el autor) es la **ASCVD estándar ACC/AHA**: **bajo <5 · límite 5–7,4 · intermedio 7,5–19,9 · alto ≥20**, aplicada al riesgo **ASCVD** a 10 años (no al ECV total). `preventCategory()` implementa esa banda; `preventCategoryAlt()` deja disponible la alternativa (bajo <5 · inter 5–7,5 · moderado 7,5–10 · alto >10) sobre el mismo % — ambas sobre un único valor calculado. Etiquetas del value-set (hoja `Datos_fármacos`): Bajo · Límite · Intermedio · Alto.
+- **Migración:** el Bot no migra "Cardiotox sola"; hace *join* por `DNI` → `Patient` con basal (Cardiotox) + serie de FEVI (Ecocardiogramas_control) + serie de ECG (Estudios_Complementarios) + meds/objetivos CKM (FRCV). ✅ **Implementado** en `src/cardiotox-mapping/migration/workbook.ts` (ver roadmap §3).
+  - ⚠ **Pendiente de validación:** los nombres de columna de las hojas seriadas y de FRCV se resuelven por **alias**, calibrados con lo documentado aquí. Antes de migrar en serio hay que correr `migrate.ts --inspect` contra el export real y revisar la lista "SIN MAPEAR" — cada columna no reconocida es un alias a agregar, nunca un dato a inventar.
 
 ---
 
@@ -385,18 +411,25 @@ https://api.epa-bienestar.com.ar/fhir/StructureDefinition/risk-source    (manual
 
 1. **CodeSystems/ValueSets locales** (`data/core/`) para los códigos `LOCAL` y los métodos de score.
 2. **Diccionario de datos** `src/cardiotox-mapping/data-dictionary.ts` (machine-readable de este documento) — *incluido en este PR*.
-3. **Bot de ingesta** `Cardiotox row → Bundle FHIR` (migración de la tabla existente, idempotente vía `ifNoneExist`).
+3. ✅ **Migrador** `Cardiotox row → Bundle FHIR` (`src/cardiotox-mapping/migration/`): la tabla existente se migra fila a fila.
+   - `parsers.ts` — capa pura de parseo: maneja los **5 "tipos de vacío"** (`""`→unknown, `No corresponde`→na, `No realizado`→not-done, `No`/`Sí`→booleano), decimales con coma/punto, fechas parciales `M/AA`→ISO, y un parser CSV RFC-4180 (comillas, comas y saltos embebidos; delimitador `,` o tab para export TSV).
+   - `cardiotox-mapper.ts` — `mapCardiotoxRow(fila) → BundleEntry[]` puro: Patient (DNI), antropometría/labs/ECG/eco (Observation), tabaquismo, antecedentes y cáncer (Condition), quimioterapia por familia ATC (MedicationStatement) y scores cargados a mano (RiskAssessment `risk-source = manual`). **Idempotente**: cada recurso lleva un `identifier` estable y se sube con `PUT` condicional por identifier (re-correr actualiza, no duplica). El Patient va como `urn:uuid` y sus recursos hijos lo referencian → una **transacción por paciente** resuelve las referencias internas.
+   - `serial-sheets.ts` — hojas **seriadas** (Ecocardiogramas_control, Estudios_Complementarios, QT_cardiotox). Estas hojas repiten el mismo juego de mediciones en bloques separados por su columna de fecha; el parser **detecta los bloques por posición** (`[…basal…] [Fecha eco control] […control 1…] [Fecha eco control 2] […]`) y resuelve cada columna contra un **catálogo por alias normalizado** (sin acentos/mayúsculas/sufijos numéricos), de modo que `FEY`, `FEY 2` y `FEY control 3` caen todas en LOINC `8806-2` y **sólo cambia la fecha** → serie temporal nativa: *una `Observation` por medición y por fecha*. El bloque basal se fecha con `Inicio seguimiento` de la spine. Las columnas que no matchean **no se inventan**: se reportan para agregar el alias.
+   - `frcv-mapper.ts` — capa **CKM**: familias farmacológicas → `MedicationStatement` (ATC: gliflozinas `A10BK`, GLP-1 `A10BJ`, IECA `C09A`, ARA II `C09C`, ARNI `C09DX04`, estatinas `C10AA`, ezetimibe `C10AX09`, ARM `C03DA`…) y objetivos terapéuticos → `Goal` con `target.measure` (LOINC) + `detailQuantity` con comparador, siguiendo la convención del proyecto CKM.
+   - `workbook.ts` — **join por `DNI`**. `Cardiotox` es el registro maestro; las demás hojas cuelgan del mismo `Patient`. Dos propiedades clave: (a) **deduplicación** — como el `identifier` es determinista, la misma medición cargada en la spine y en la hoja seriada colapsa en **un** recurso (justamente lo que resuelve la duplicación `inicial/control` de la planilla, y además FHIR prohíbe dos entries que resuelvan al mismo recurso dentro de una transacción); (b) **huérfanos** — una fila seriada cuyo DNI no está en la spine se omite con advertencia (o genera un `Patient` mínimo con `--include-orphans`).
+   - `migrate.ts` — CLI: `tsx migrate.ts <cardiotox.csv> [--echo f] [--ecg f] [--qt f] [--frcv f]`. Dry-run por defecto (escribe los Bundles a JSON) · `--inspect` **reporta la cobertura de encabezados sin escribir nada** (correrlo PRIMERO contra el export real para ver qué columnas no se reconocen) · `--execute` sube a Medplum vía `executeBatch` · `--tab` para TSV. CSV de-identificados de ejemplo en `data/example/`.
+   - Cobertura: **61 tests**. Caso testigo de-identificado (mujer 56, linfoma B, R-CHOP → 4 familias de quimio, SAC=Intermedio) unido a 3 ecos y 2 ECG seriados → **FEVI 60% → 52% → 45%** como serie fechada, con integridad referencial verificada (un solo `Patient`, `request.url` únicas por transacción).
 4. **Motor de scores** (`src/cardiotox-mapping/scores/`): funciones puras → `RiskAssessment`, con fuente bibliográfica y tests (41 tests, todos verdes).
    - ✅ **PREVENT 2023** (`prevent.ts`): base + CKM (HbA1c, UACR), 10 y 30 años, ECV total y ASCVD. Coeficientes de Khan SS et al., *Circulation* 2024 (Tablas S12A–J), verificados contra caso publicado. Modelo `full`/SDI (deprivación social por ZIP de EE.UU.) excluido por no aplicar a Argentina.
    - ✅ **Framingham 2008** (`framingham.ts`): ECV general 10 años. D'Agostino *Circulation* 2008. Verificado contra caso del paquete CVrisk.
    - ✅ **ESC SCORE2 / SCORE2-OP** (`score2.ts`): ECV fatal+no fatal 10 años, recalibración por región. *Eur Heart J* 2021. Portado verbatim de RiskScorescvd. Argentina sin región oficial → parámetro `region`.
    - ✅ **OPS / Globorisk** (`globorisk.ts` + `globorisk-data-ar.ts`): motor **Globorisk** (Ueda et al., *Lancet Diabetes Endocrinol* 2017) — la base de las cartas OPS/OMS — recalibrado para **Argentina**, modelo de laboratorio, ecuaciones LAC actualizadas, año base 2020. Coeficientes, medias poblacionales y tasas basales de ECV extraídos verbatim de `boyercb/globorisk`. Chequeo de plausibilidad OK (hombre 60, fumador, no DBT → **11.6%**, no el 63% de un modelo mal calibrado). **Nota:** la app oficial OPS/PAHO está siendo discontinuada (evoluciona a un modelo cardio-reno-metabólico), por lo que Globorisk (variante por país, Argentina) queda como la **implementación de referencia del proyecto** — no hay app externa contra la cual contrastar.
-   - ⏳ **SAC-DVATC**: pendiente de los umbrales de la pág. 34 del Consenso SAC.
-5. ✅ **UI**: panel "Scores de Riesgo" (`RiskScoresPanel.tsx`, tab en `PatientDetails`) que precarga inputs desde FHIR y muestra PREVENT + Framingham + SCORE2 juntos, con OPS/SAC señalados como pendientes de fuente.
+   - ✅ **SAC-DVATC (provisional)** (`sac.ts`): factores del paciente (Tabla 2, 1 pt c/u según tratamiento) + puntos de tratamiento (0–4) → categoría (bajo <3 · intermedio 3–4 · alto 5–6 · muy alto >6). ⚠ Los **puntos de tratamiento** usan un default provisional (2 por agente cardiotóxico, calibrado al caso testigo real: mujer en antraciclinas → 1+2=3=Intermedio) hasta obtener la regla exacta del Consenso.
+5. ✅ **UI**: panel "Scores de Riesgo" (`RiskScoresPanel.tsx`, tab en `PatientDetails`) que precarga inputs desde FHIR y muestra **PREVENT + Framingham + SCORE2 + OPS/Globorisk + SAC** juntos, con guardado de los `RiskAssessment`.
 6. ✅ **Bot de recálculo** (`recalculate-scores-bot.ts`): Subscription sobre Observation (códigos de entrada) → recalcula PREVENT/Framingham/SCORE2/Globorisk y hace **upsert idempotente** de los `RiskAssessment` (`risk-source = computed`, un recurso por método vía identifier). Reutiliza el motor de scores (esbuild lo inlinea). Registrado en `deploy-bots.ts`. Lógica de orquestación testeada (`buildScoresForInputs`).
 
 > ⚠️ Los coeficientes de cada algoritmo se implementan **citando la fuente y con tests de casos publicados** — nunca a mano.
 >
 > 🧭 **Alineación cardio-reno-metabólica (CKM):** PREVENT 2023 es el modelo CKM de la AHA — ya incorpora riñón (eGFR) y metabolismo (HbA1c, UACR ← campo `Microalb`). La plataforma queda así alineada con la evolución del campo hacia lo cardio-reno-metabólico.
 >
-> ⏳ **SAC-DVATC**: único score pendiente, a la espera de la cita concreta de los umbrales (pág. 34 del Consenso). El mapeo de factores (Tabla 2) ya está; falta solo el cut-point.
+> ✅ **SAC-DVATC** implementado en modo **provisional**: factores (Tabla 2) + umbrales del Consenso ya están; el único supuesto es el **puntaje de tratamiento por droga (0–4)**, a reemplazar cuando aparezca la regla textual del Consenso. Marcado en FHIR con extensión `risk-source = computed-provisional`.
