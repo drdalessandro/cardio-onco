@@ -2,107 +2,132 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
  * EPA Bienestar IA — Cardio-Oncología Marie Curie
- * Migrador CLI: export de la hoja "Cardiotox" (Google Sheets) → FHIR R4.
+ * Migrador CLI: libro "Cardiotox" (Google Sheets, 9 hojas) → FHIR R4.
  *
- * Cada fila se sube como un Bundle TRANSACCIONAL propio: el Patient va como
- * `urn:uuid` y sus Observations/Conditions/etc. lo referencian, de modo que la
- * transacción resuelve las referencias internas. Todo es idempotente (PUT por
- * `identifier`): re-correr la migración ACTUALIZA en vez de duplicar.
+ * Las hojas se exportan a CSV/TSV (una por hoja) y se unen por `DNI`: cada
+ * paciente se sube como **un Bundle transaccional** con su Patient (`urn:uuid`)
+ * y todos sus recursos referenciándolo, de modo que la transacción resuelve las
+ * referencias internas. Todo idempotente (PUT por `identifier`): re-correr la
+ * migración ACTUALIZA en vez de duplicar.
  *
  * Uso:
- *   tsx migrate.ts <archivo.csv> [--tab] [--out <ruta.json>]   # DRY-RUN (default)
- *   tsx migrate.ts <archivo.csv> --execute                     # sube a Medplum
+ *   tsx migrate.ts <cardiotox.csv> [hojas…] [opciones]      # DRY-RUN (default)
  *
- * DRY-RUN (default): no toca Medplum; escribe los Bundles a JSON y muestra un
- * resumen. `--tab` para export TSV. `--execute` sube a Medplum.
+ * Hojas adicionales (join por DNI):
+ *   --echo  <csv>   Ecocardiogramas_control  (serie de eco/FEVI)
+ *   --ecg   <csv>   Estudios_Complementarios (serie de ECG)
+ *   --qt    <csv>   QT_cardiotox             (serie ECG/eco, foco QT)
+ *   --frcv  <csv>   FRCV                     (capa CKM: meds + objetivos)
+ *
+ * Opciones:
+ *   --inspect            Sólo reporta cobertura de encabezados (no escribe nada).
+ *                        Úsalo PRIMERO contra el export real para ver qué
+ *                        columnas no se reconocen antes de migrar.
+ *   --include-orphans    Crea Patient mínimo para DNIs que sólo están en hojas
+ *                        seriadas (por defecto se omiten con advertencia).
+ *   --tab                Los archivos son TSV.
+ *   --out <ruta.json>    Destino del dry-run.
+ *   --execute            Sube a Medplum (requiere credenciales).
  *
  * Credenciales (sólo --execute):
- *   MEDPLUM_BASE_URL    (default https://api.epa-bienestar.com.ar/fhir)
- *   MEDPLUM_CLIENT_ID   MEDPLUM_CLIENT_SECRET
+ *   MEDPLUM_BASE_URL   (default https://api.epa-bienestar.com.ar/fhir)
+ *   MEDPLUM_CLIENT_ID  MEDPLUM_CLIENT_SECRET
  */
 import { MedplumClient } from '@medplum/core';
-import type { Bundle, BundleEntry } from '@medplum/fhirtypes';
 import { mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { dirname } from 'path';
-import { mapCardiotoxRow } from './cardiotox-mapper';
 import { parseCsv, rowsToObjects } from './parsers';
+import { joinWorkbook } from './workbook';
+import type { SheetName, Workbook } from './workbook';
 
 const DEFAULT_OUT = 'data/example/cardiotox-migration-dryrun.json';
 const DEFAULT_BASE_URL = 'https://api.epa-bienestar.com.ar/fhir';
 
-interface Cli {
-  file: string;
-  tab: boolean;
-  execute: boolean;
-  out: string;
-}
+/** Flag de CLI → hoja del libro. */
+const SHEET_FLAGS: Array<{ flag: string; sheet: SheetName }> = [
+  { flag: '--echo', sheet: 'Ecocardiogramas_control' },
+  { flag: '--ecg', sheet: 'Estudios_Complementarios' },
+  { flag: '--qt', sheet: 'QT_cardiotox' },
+  { flag: '--frcv', sheet: 'FRCV' },
+];
 
 function flagValue(args: string[], flag: string): string | undefined {
   const i = args.indexOf(flag);
   return i >= 0 ? args[i + 1] : undefined;
 }
 
-function parseArgs(argv: string[]): Cli {
-  const args = argv.slice(2);
-  const file = args.find((a) => !a.startsWith('--'));
-  if (!file) {
-    console.error('Falta el archivo CSV.\n  Uso: tsx migrate.ts <archivo.csv> [--tab] [--execute] [--out <ruta>]');
-    process.exit(2);
-  }
-  return {
-    file,
-    tab: args.includes('--tab'),
-    execute: args.includes('--execute'),
-    out: flagValue(args, '--out') ?? DEFAULT_OUT,
-  };
+function die(msg: string): never {
+  console.error(msg);
+  process.exit(2);
 }
 
-/** Envuelve las entries de una fila en un Bundle transaccional. */
-function rowBundle(entry: BundleEntry[]): Bundle {
-  return { resourceType: 'Bundle', type: 'transaction', entry };
-}
-
-async function main(): Promise<void> {
-  const cli = parseArgs(process.argv);
-  const raw = readFileSync(cli.file, 'utf-8');
-  const rows = rowsToObjects(parseCsv(raw, cli.tab ? '\t' : ','));
-
-  const bundles: Bundle[] = [];
-  const warnings: string[] = [];
-  let resourceCount = 0;
-
-  rows.forEach((row, i) => {
-    const res = mapCardiotoxRow(row);
-    // fila humana = índice + 2 (encabezado + base 1)
-    res.warnings.forEach((w) => warnings.push(`fila ${i + 2}: ${w}`));
-    if (res.entries.length === 0) return;
-    bundles.push(rowBundle(res.entries));
-    resourceCount += res.entries.length;
-  });
-
-  console.log(`━━━ Migrador Cardiotox → FHIR ━━━`);
-  console.log(`Filas leídas:    ${rows.length}`);
-  console.log(`Pacientes:       ${bundles.length}`);
-  console.log(`Recursos totales: ${resourceCount}`);
-  if (warnings.length) {
-    console.warn(`Advertencias (${warnings.length}):`);
-    warnings.forEach((w) => console.warn(`  ⚠ ${w}`));
+function main(): Promise<void> {
+  const args = process.argv.slice(2);
+  const flagValues = new Set(SHEET_FLAGS.map((s) => flagValue(args, s.flag)).filter(Boolean));
+  const spineFile = args.find((a) => !a.startsWith('--') && !flagValues.has(a) && a !== flagValue(args, '--out'));
+  if (!spineFile) {
+    die(
+      'Falta el CSV de la hoja Cardiotox.\n' +
+        '  Uso: tsx migrate.ts <cardiotox.csv> [--echo f] [--ecg f] [--qt f] [--frcv f] [--inspect] [--execute]'
+    );
   }
 
-  if (!cli.execute) {
-    mkdirSync(dirname(cli.out), { recursive: true });
-    writeFileSync(cli.out, JSON.stringify(bundles, null, 2));
-    console.log(`\n[dry-run] ${bundles.length} Bundle(s) escritos en ${cli.out}`);
+  const delimiter = args.includes('--tab') ? '\t' : ',';
+  const read = (f: string): Array<Record<string, string>> => rowsToObjects(parseCsv(readFileSync(f, 'utf-8'), delimiter));
+
+  const sheets: Workbook['sheets'] = { Cardiotox: read(spineFile) };
+  for (const { flag, sheet } of SHEET_FLAGS) {
+    const f = flagValue(args, flag);
+    if (f) sheets[sheet] = read(f);
+  }
+
+  const result = joinWorkbook({ sheets, includeOrphans: args.includes('--include-orphans') });
+
+  console.log('━━━ Migrador Cardiotox → FHIR (join por DNI) ━━━');
+  for (const c of result.coverage) {
+    console.log(`\n▸ ${c.sheet} — ${c.rows} fila(s)`);
+    if (c.sheet !== 'Cardiotox') {
+      console.log(`  reconocidas (${c.matched.length}): ${c.matched.join(', ') || '—'}`);
+      if (c.ignored.length) {
+        console.log(`  ⚠ SIN MAPEAR (${c.ignored.length}): ${c.ignored.join(', ')}`);
+      }
+    }
+  }
+
+  console.log(`\nPacientes:        ${result.stats.patients}`);
+  console.log(`Recursos:         ${result.stats.resources}`);
+  console.log(`Entries fusionadas: ${result.stats.deduped}  (misma medición en dos hojas → un recurso)`);
+  if (result.stats.orphanDnis.length) {
+    console.log(`DNIs huérfanos:   ${result.stats.orphanDnis.join(', ')}`);
+  }
+  if (result.warnings.length) {
+    console.warn(`\nAdvertencias (${result.warnings.length}):`);
+    result.warnings.forEach((w) => console.warn(`  ⚠ ${w}`));
+  }
+
+  if (args.includes('--inspect')) {
+    console.log('\n[inspect] Sin escribir ni subir nada. Revisá las columnas SIN MAPEAR y agregá sus alias antes de migrar.');
+    return Promise.resolve();
+  }
+
+  if (!args.includes('--execute')) {
+    const out = flagValue(args, '--out') ?? DEFAULT_OUT;
+    mkdirSync(dirname(out), { recursive: true });
+    writeFileSync(out, JSON.stringify(result.bundles, null, 2));
+    console.log(`\n[dry-run] ${result.bundles.length} Bundle(s) escritos en ${out}`);
     console.log('Para subir a Medplum: agregá --execute (requiere MEDPLUM_CLIENT_ID/SECRET).');
-    return;
+    return Promise.resolve();
   }
 
+  return upload(result.bundles);
+}
+
+async function upload(bundles: ReturnType<typeof joinWorkbook>['bundles']): Promise<void> {
   const baseUrl = process.env.MEDPLUM_BASE_URL ?? DEFAULT_BASE_URL;
   const clientId = process.env.MEDPLUM_CLIENT_ID;
   const clientSecret = process.env.MEDPLUM_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
-    console.error('Faltan MEDPLUM_CLIENT_ID / MEDPLUM_CLIENT_SECRET para --execute.');
-    process.exit(2);
+    die('Faltan MEDPLUM_CLIENT_ID / MEDPLUM_CLIENT_SECRET para --execute.');
   }
 
   const medplum = new MedplumClient({ baseUrl });

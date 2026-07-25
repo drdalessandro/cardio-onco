@@ -20,6 +20,7 @@ import type {
 } from '@medplum/fhirtypes';
 import { CHEMO_FAMILIES, CONDITION_CODES, OBSERVATION_CODES, SYSTEMS, riskMethodConcept } from '../data-dictionary';
 import type { ChemoFamily, ConditionCode, ObsCode, RiskScoreMethod } from '../data-dictionary';
+import { MIG_SYS, OBS_CAT_SYS, loincMeasure, measureObsEntry, patientFullUrl, putEntry } from './entry-builders';
 import { birthDateFromAge, isYes, num, partialDate, slug, text } from './parsers';
 
 export type CardiotoxRow = Record<string, string>;
@@ -31,10 +32,7 @@ export interface MapResult {
 }
 
 const DNI_SYS = SYSTEMS.dniArgentina;
-const MIG_SYS = SYSTEMS.cardiotoxRecordId; // system de identifiers de migración
 const LOINC = SYSTEMS.loinc;
-const UCUM = SYSTEMS.ucum;
-const OBS_CAT_SYS = 'http://terminology.hl7.org/CodeSystem/observation-category';
 
 const enc = encodeURIComponent;
 
@@ -80,15 +78,7 @@ const MANUAL_SCORE_COLUMNS: Array<{ col: string; method: RiskScoreMethod }> = [
   { col: 'PREVENT (bajo <5, inter 5-7.5, modera 7.5 -10, alto > 10)', method: 'PREVENT-AHA-2023' },
 ];
 
-// ─── Helpers de BundleEntry idempotente ───────────────────────────────────────
-function putEntry(resource: Resource, type: string, idValue: string): BundleEntry {
-  return {
-    fullUrl: `urn:uuid:${slug(type)}-${slug(idValue)}`,
-    resource,
-    request: { method: 'PUT', url: `${type}?identifier=${enc(MIG_SYS)}|${enc(idValue)}` },
-  };
-}
-
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function mapGender(v: string | undefined): Patient['gender'] {
   const t = (v ?? '').trim().toLowerCase();
   if (t.startsWith('f')) return 'female';
@@ -97,20 +87,7 @@ function mapGender(v: string | undefined): Patient['gender'] {
 }
 
 function obsEntry(subject: Reference<Patient>, dni: string, code: ObsCode, category: string, value: number, date?: string): BundleEntry {
-  const idValue = `${dni}-obs-${code.code}${date ? '-' + date : ''}`;
-  const obs: Observation = {
-    resourceType: 'Observation',
-    identifier: [{ system: MIG_SYS, value: idValue }],
-    status: 'final',
-    category: [{ coding: [{ system: OBS_CAT_SYS, code: category }] }],
-    code: { coding: [{ system: LOINC, code: code.code, display: code.display }] },
-    subject,
-    effectiveDateTime: date,
-    valueQuantity: code.unit
-      ? { value, unit: code.unit, system: UCUM, code: code.unit }
-      : { value },
-  };
-  return putEntry(obs, 'Observation', idValue);
+  return measureObsEntry(subject, dni, loincMeasure(code, category), value, date);
 }
 
 function condEntry(subject: Reference<Patient>, dni: string, c: ConditionCode, date?: string): BundleEntry {
@@ -174,7 +151,7 @@ export function mapCardiotoxRow(row: CardiotoxRow): MapResult {
     return { entries: [], warnings: ['Fila sin DNI — se omite'] };
   }
 
-  const patFullUrl = `urn:uuid:pat-${slug(dni)}`;
+  const patFullUrl = patientFullUrl(dni);
   const subject: Reference<Patient> = { reference: patFullUrl };
   const date = partialDate(row['Inicio seguimiento']); // fecha basal si está
   const entries: BundleEntry[] = [];
