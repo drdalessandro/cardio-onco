@@ -46,6 +46,24 @@ export function text(v: string | undefined): string | undefined {
 }
 
 /**
+ * Normaliza un DNI a dígitos.
+ *
+ * Las planillas guardan el DNI como **número**, así que los exports suelen
+ * traerlo como `10547059.0` (o con puntos de miles). El DNI es la clave de join
+ * y la base de los identifiers, de modo que un sufijo `.0` generaría un paciente
+ * distinto: hay que normalizarlo antes de usarlo.
+ *
+ * Devuelve `undefined` si no queda ningún dígito (celda vacía, o una fila de
+ * encabezado repetida en el medio de los datos, donde la celda dice "DNI").
+ */
+export function dniValue(v: string | undefined): string | undefined {
+  const t = text(v);
+  if (!t) return undefined;
+  const digits = t.replace(/\.0+$/, '').replace(/\D/g, '');
+  return digits || undefined;
+}
+
+/**
  * Fecha parcial → ISO 8601. Acepta ISO, `M/AA`, `M/AAAA`, `DD/MM/AAAA`.
  * `3/26` → `2026-03` (año-mes). Si no se puede parsear, devuelve `undefined`
  * (mejor sin fecha que una fecha inventada).

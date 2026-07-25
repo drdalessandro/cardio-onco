@@ -317,6 +317,84 @@ export function riskMethodConcept(method: RiskScoreMethod): CodeableConcept {
   };
 }
 
+// ─── Hallazgos cualitativos del eco (hoja Ecocardiogramas control) ───────────
+// Las columnas `Valvulopatia leve|moderada|severa` NO son booleanas: contienen
+// QUÉ válvula está afectada (`IT`, `IM`, `IAo`, `IP`, o combinaciones como
+// `IT IM`), y la severidad la da la columna. Por eso el modelo correcto es una
+// `Condition` por válvula con `Condition.severity` — no un booleano.
+
+/** Lesión valvular: sigla de la planilla → código. */
+export interface ValveLesion {
+  abbr: string;
+  icd10: string;
+  snomed: string;
+  display: string;
+  unverified?: boolean;
+}
+
+export const VALVE_LESIONS: ValveLesion[] = [
+  { abbr: 'IT', icd10: 'I36.1', snomed: '111287006', display: 'Insuficiencia tricuspídea', unverified: true },
+  { abbr: 'IM', icd10: 'I34.0', snomed: '48724000', display: 'Insuficiencia mitral', unverified: true },
+  { abbr: 'IAo', icd10: 'I35.1', snomed: '60234000', display: 'Insuficiencia aórtica', unverified: true },
+  { abbr: 'IP', icd10: 'I37.1', snomed: '91434003', display: 'Insuficiencia pulmonar', unverified: true },
+  { abbr: 'EAo', icd10: 'I35.0', snomed: '60573004', display: 'Estenosis aórtica', unverified: true },
+  { abbr: 'EM', icd10: 'I05.0', snomed: '79619009', display: 'Estenosis mitral', unverified: true },
+];
+
+/** Severidad → SNOMED qualifier value (`Condition.severity`). */
+export const SEVERITY_CODES = {
+  leve: { code: '255604002', display: 'Leve' },
+  moderada: { code: '6736007', display: 'Moderada' },
+  severa: { code: '24484000', display: 'Severa' },
+} as const satisfies Record<string, { code: string; display: string }>;
+
+export type SeverityKey = keyof typeof SEVERITY_CODES;
+
+/** Hallazgo booleano (0/1 o Sí/No) que se modela como `Condition`. */
+export interface FindingCode {
+  /** Columna de origen en la planilla. */
+  source: string;
+  icd10?: string;
+  snomed: string;
+  display: string;
+  unverified?: boolean;
+}
+
+/** Hallazgos 0/1 del eco. */
+export const ECHO_FINDINGS: FindingCode[] = [
+  { source: 'Disf Diasto', snomed: '3545003', display: 'Disfunción diastólica', unverified: true },
+  // La planilla escribe esta columna de tres formas distintas según la hoja.
+  { source: 'Trastornos de motildad', snomed: '251052000', display: 'Trastorno de motilidad segmentaria', unverified: true },
+  { source: 'Trastornos motildad', snomed: '251052000', display: 'Trastorno de motilidad segmentaria', unverified: true },
+  { source: 'Trastornos de mot', snomed: '251052000', display: 'Trastorno de motilidad segmentaria', unverified: true },
+  { source: 'Derrame pericardico', icd10: 'I31.3', snomed: '373945007', display: 'Derrame pericárdico' },
+];
+
+/** Hallazgos Sí/No del ECG que son diagnóstico → `Condition`. */
+export const ECG_CONDITIONS: FindingCode[] = [
+  { source: 'FA', icd10: 'I48.91', snomed: '49436004', display: 'Fibrilación auricular' },
+  { source: 'AA', icd10: 'I48.92', snomed: '5370000', display: 'Aleteo auricular', unverified: true },
+  { source: 'BAV', icd10: 'I44.30', snomed: '233916004', display: 'Bloqueo auriculoventricular' },
+];
+
+/** Hallazgos Sí/No del ECG que son observación codificada → `Observation`. */
+export const ECG_OBSERVATIONS: FindingCode[] = [
+  { source: 'RS', snomed: '251150004', display: 'Ritmo sinusal' },
+  { source: 'Trast rep', snomed: '428750005', display: 'Trastorno de la repolarización', unverified: true },
+  { source: 'Trast conduc', snomed: '44808001', display: 'Trastorno de la conducción', unverified: true },
+  { source: 'Q pat', snomed: '164865005', display: 'Onda Q patológica' },
+];
+
+/**
+ * Daño de órgano blanco (columna `Daño de organo blanco` de FRCV).
+ * Valores reales: `HVI`, `RAC`, `IR` y combinaciones (`HVI + IR`).
+ */
+export const ORGAN_DAMAGE: Array<FindingCode & { abbr: string }> = [
+  { abbr: 'HVI', source: 'Daño de organo blanco', icd10: 'I51.7', snomed: '55827005', display: 'Hipertrofia ventricular izquierda' },
+  { abbr: 'RAC', source: 'Daño de organo blanco', icd10: 'R80.9', snomed: '29738008', display: 'Albuminuria (RAC elevada)', unverified: true },
+  { abbr: 'IR', source: 'Daño de organo blanco', icd10: 'N18.9', snomed: '709044004', display: 'Insuficiencia renal crónica', unverified: true },
+];
+
 // ─── Campos derivados — NO se almacenan ──────────────────────────────────────
 
 export const DERIVED_FIELDS: string[] = [

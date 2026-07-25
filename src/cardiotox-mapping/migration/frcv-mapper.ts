@@ -19,10 +19,12 @@
  * columnas no reconocidas se reportan (nunca se adivinan).
  */
 
-import type { BundleEntry, Goal, MedicationStatement, Patient, Reference } from '@medplum/fhirtypes';
-import { OBSERVATION_CODES, SYSTEMS } from '../data-dictionary';
-import type { ObsCode } from '../data-dictionary';
-import { MIG_SYS, putEntry } from './entry-builders';
+import type {
+  BundleEntry, Coding, Condition, Goal, MedicationStatement, Observation, Patient, Reference, RiskAssessment,
+} from '@medplum/fhirtypes';
+import { ORGAN_DAMAGE, OBSERVATION_CODES, SYSTEMS, riskMethodConcept } from '../data-dictionary';
+import type { ObsCode, RiskScoreMethod } from '../data-dictionary';
+import { MIG_SYS, OBS_CAT_SYS, loincMeasure, measureObsEntry, putEntry } from './entry-builders';
 import { measureAlias } from './serial-sheets';
 import { isYes, num, slug, text } from './parsers';
 
@@ -43,19 +45,37 @@ export interface CvMedFamily {
 export const CV_MED_FAMILIES: CvMedFamily[] = [
   // ── Eje renina-angiotensina-aldosterona ──
   { aliases: ['IECA'], atc: 'C09A', display: 'IECA (inhibidores de la ECA)' },
-  { aliases: ['ARA2', 'ARA II', 'ARAII'], atc: 'C09C', display: 'ARA II (antagonistas del receptor de angiotensina II)' },
+  { aliases: ['ARA 2', 'ARA2', 'ARA II', 'ARAII'], atc: 'C09C', display: 'ARA II (antagonistas del receptor de angiotensina II)' },
   { aliases: ['ARNI', 'Sacubitrilo', 'Sacubitrilo/Valsartán'], atc: 'C09DX04', display: 'ARNI (sacubitrilo/valsartán)' },
-  { aliases: ['Antialdosteronicos', 'Espironolactona', 'ARM', 'MRA'], atc: 'C03DA', display: 'Antagonistas de la aldosterona (ARM)' },
+  {
+    aliases: ['Antag Mineralocort', 'Antialdosteronicos', 'Espironolactona', 'ARM', 'MRA'],
+    atc: 'C03DA',
+    display: 'Antagonistas mineralocorticoides (ARM)',
+  },
   // ── Insignia CKM ──
   { aliases: ['Gliflozinas', 'iSGLT2', 'SGLT2', 'Dapagliflozina', 'Empagliflozina'], atc: 'A10BK', display: 'Gliflozinas (inhibidores de SGLT2)', ckmCore: true },
-  { aliases: ['GLP1', 'GLP-1', 'Analogos GLP1', 'Semaglutida', 'Liraglutida'], atc: 'A10BJ', display: 'Agonistas del receptor de GLP-1', ckmCore: true },
+  {
+    // La planilla la llama "antag GLP 1".
+    aliases: ['antag GLP 1', 'GLP1', 'GLP-1', 'Analogos GLP1', 'Semaglutida', 'Liraglutida'],
+    atc: 'A10BJ',
+    display: 'Agonistas del receptor de GLP-1',
+    ckmCore: true,
+  },
   // ── Lípidos ──
   { aliases: ['Estatinas', 'Estatina'], atc: 'C10AA', display: 'Estatinas', ckmCore: true },
   { aliases: ['Ezetimibe'], atc: 'C10AX09', display: 'Ezetimibe' },
-  // ── Resto del arsenal CV ──
-  { aliases: ['Betabloqueantes', 'BB'], atc: 'C07', display: 'Betabloqueantes' },
-  { aliases: ['Calcioantagonistas', 'BCC'], atc: 'C08', display: 'Bloqueantes cálcicos' },
+  { aliases: ['Ac. bempedoico', 'Acido bempedoico', 'Bempedoico'], atc: 'C10AX15', display: 'Ácido bempedoico' },
+  { aliases: ['Fibratos'], atc: 'C10AB', display: 'Fibratos' },
+  // ── Antihipertensivos ──
+  // NB: "Betabloquentes" es el encabezado real de la planilla (sin la "a").
+  { aliases: ['Betabloquentes', 'Betabloqueantes', 'BB'], atc: 'C07', display: 'Betabloqueantes' },
+  { aliases: ['Bloq calcicos', 'Calcioantagonistas', 'BCC'], atc: 'C08', display: 'Bloqueantes cálcicos' },
+  { aliases: ['Diuretico tiazidico', 'Tiazidas'], atc: 'C03A', display: 'Diuréticos tiazídicos' },
+  { aliases: ['Diurt simil tiazidico', 'Simil tiazidico', 'Indapamida', 'Clortalidona'], atc: 'C03BA', display: 'Diuréticos símil tiazídicos' },
   { aliases: ['Diureticos'], atc: 'C03', display: 'Diuréticos' },
+  { aliases: ['Hidralazina'], atc: 'C02DB02', display: 'Hidralazina' },
+  { aliases: ['metil dopa', 'Metildopa', 'Alfa metil dopa'], atc: 'C02AB', display: 'Metildopa' },
+  // ── Metabólico / antitrombótico ──
   { aliases: ['Metformina'], atc: 'A10BA02', display: 'Metformina' },
   { aliases: ['Insulina'], atc: 'A10A', display: 'Insulina' },
   { aliases: ['Anticoagulantes', 'ACO', 'DOAC'], atc: 'B01A', display: 'Anticoagulantes' },
@@ -78,6 +98,49 @@ export const GOAL_DEFS: GoalDef[] = [
   { aliases: ['TAS objetivo', 'Objetivo TAS', 'PA objetivo'], code: OBSERVATION_CODES.systolicBP, comparator: '<', label: 'TA sistólica' },
   { aliases: ['Peso objetivo', 'Objetivo peso'], code: OBSERVATION_CODES.weight, comparator: '<', label: 'Peso' },
 ];
+
+/**
+ * Objetivos de tratamiento cumplidos (`Cumple objetivos…` = si/no).
+ * La planilla los separa por dominio según la posición de la columna: el
+ * primero cierra el bloque de antihipertensivos y el segundo el de lípidos.
+ */
+export const GOAL_ACHIEVEMENT: Array<{ aliases: string[]; key: string; description: string }> = [
+  {
+    aliases: ['Cumple objetivos de tratamiento'],
+    key: 'hta',
+    description: 'Objetivos de tratamiento antihipertensivo',
+  },
+  { aliases: ['Cumple objetivos'], key: 'lipidos', description: 'Objetivos de tratamiento lipídico' },
+  {
+    // Se modela como objetivo cumplido/no cumplido para no inventar un código
+    // clínico de "cese tabáquico" que no está verificado.
+    aliases: ['Logra cese tabaquico'],
+    key: 'cese-tabaquico',
+    description: 'Cese del tabaquismo',
+  },
+];
+
+/** Scores cargados a mano en FRCV → `RiskAssessment` manual. */
+export const FRCV_SCORE_COLUMNS: Array<{ aliases: string[]; method: RiskScoreMethod }> = [
+  { aliases: ['Score OPS'], method: 'OPS-PAHO' },
+  { aliases: ['Score framing', 'Score Framingham'], method: 'FRAMINGHAM' },
+  { aliases: ['PREVENT'], method: 'PREVENT-AHA-2023' },
+];
+
+/**
+ * Columnas auxiliares de la planilla (contadores de la hoja Estadísticas,
+ * restos de value-sets) — se ignoran explícitamente para que no aparezcan como
+ * "sin mapear" en el reporte de cobertura.
+ */
+export const FRCV_HELPER_COLUMNS = ['Si', 'No', 'Column 1'];
+
+/** `Pack year` → carga tabáquica acumulada. */
+const PACK_YEARS: ObsCode = {
+  code: '8664-5',
+  display: 'Cigarettes smoked total (pack years)',
+  unit: '{pack_years}',
+  unverified: true,
+};
 
 export interface FrcvMapResult {
   entries: BundleEntry[];
@@ -136,6 +199,76 @@ function goalResource(
   return putEntry(goal, 'Goal', idValue);
 }
 
+/** Goal booleano de cumplimiento (sin target numérico). */
+function achievementGoal(
+  subject: Reference<Patient>, dni: string, key: string, description: string, achieved: boolean
+): BundleEntry {
+  const idValue = `${dni}-goal-${key}`;
+  const goal: Goal = {
+    resourceType: 'Goal',
+    identifier: [{ system: MIG_SYS, value: idValue }],
+    lifecycleStatus: 'active',
+    achievementStatus: {
+      coding: [
+        {
+          system: 'http://terminology.hl7.org/CodeSystem/goal-achievement',
+          code: achieved ? 'achieved' : 'not-achieved',
+          display: achieved ? 'Achieved' : 'Not Achieved',
+        },
+      ],
+    },
+    description: { text: description },
+    subject,
+  };
+  return putEntry(goal, 'Goal', idValue);
+}
+
+/** Condition de daño de órgano blanco (HVI, RAC, IR…). */
+function organDamageConditions(
+  subject: Reference<Patient>, dni: string, raw: string
+): { entries: BundleEntry[]; unknown: string[] } {
+  const entries: BundleEntry[] = [];
+  const unknown: string[] = [];
+  for (const token of raw.split(/[\s,+/]+/).filter(Boolean)) {
+    if (/^(no|0(\.0+)?)$/i.test(token)) continue;
+    const d = ORGAN_DAMAGE.find((o) => o.abbr.toLowerCase() === token.toLowerCase());
+    if (!d) {
+      unknown.push(token);
+      continue;
+    }
+    const idValue = `${dni}-cond-${d.snomed}`;
+    const coding: Coding[] = [{ system: SYSTEMS.snomed, code: d.snomed, display: d.display }];
+    if (d.icd10) coding.unshift({ system: SYSTEMS.icd10, code: d.icd10, display: d.display });
+    const cond: Condition = {
+      resourceType: 'Condition',
+      identifier: [{ system: MIG_SYS, value: idValue }],
+      clinicalStatus: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-clinical', code: 'active' }] },
+      category: [{ coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-category', code: 'problem-list-item' }] }],
+      code: { coding, text: d.display },
+      subject,
+    };
+    entries.push(putEntry(cond, 'Condition', idValue));
+  }
+  return { entries, unknown };
+}
+
+/** RiskAssessment manual desde una categoría cargada a mano. */
+function manualRisk(
+  subject: Reference<Patient>, dni: string, method: RiskScoreMethod, categoryText: string
+): BundleEntry {
+  const idValue = `${dni}-risk-${method}-manual`;
+  const ra: RiskAssessment = {
+    resourceType: 'RiskAssessment',
+    identifier: [{ system: MIG_SYS, value: idValue }],
+    status: 'final',
+    method: riskMethodConcept(method),
+    subject,
+    prediction: [{ outcome: { text: categoryText }, qualitativeRisk: { text: categoryText } }],
+    extension: [{ url: SYSTEMS.riskSourceExt, valueCode: 'manual' }],
+  };
+  return putEntry(ra, 'RiskAssessment', idValue);
+}
+
 // Índices por alias normalizado (se arman una sola vez).
 const MED_BY_ALIAS = new Map<string, CvMedFamily>(
   CV_MED_FAMILIES.flatMap((f) => f.aliases.map((a) => [measureAlias(a), f] as const))
@@ -143,6 +276,45 @@ const MED_BY_ALIAS = new Map<string, CvMedFamily>(
 const GOAL_BY_ALIAS = new Map<string, GoalDef>(
   GOAL_DEFS.flatMap((g) => g.aliases.map((a) => [measureAlias(a), g] as const))
 );
+const ACHIEVEMENT_BY_ALIAS = new Map(
+  GOAL_ACHIEVEMENT.flatMap((g) => g.aliases.map((a) => [measureAlias(a), g] as const))
+);
+const SCORE_BY_ALIAS = new Map(
+  FRCV_SCORE_COLUMNS.flatMap((s) => s.aliases.map((a) => [measureAlias(a), s] as const))
+);
+const ORGAN_DAMAGE_ALIASES = new Set(['Daño de organo blanco', 'Daño de org blanco'].map(measureAlias));
+const HELPER_ALIASES = new Set(FRCV_HELPER_COLUMNS.map(measureAlias));
+const IDENTITY_ALIASES = new Set(
+  ['DNI', 'Nombre', 'apellido', 'sexo', 'edad', 'telefono', 'Inicio seguimiento'].map(measureAlias)
+);
+const PACK_YEARS_ALIAS = measureAlias('Pack year');
+const EX_SMOKER_ALIAS = measureAlias('Ex TBQ');
+
+/**
+ * `Observation` de ex tabaquista — usa el MISMO identifier que la spine
+ * (`<dni>-obs-smoking`), de modo que la columna duplicada de FRCV colapsa en un
+ * único recurso en vez de crear uno paralelo.
+ */
+function smokingStatusEntry(subject: Reference<Patient>, dni: string): BundleEntry {
+  const idValue = `${dni}-obs-smoking`;
+  const obs: Observation = {
+    resourceType: 'Observation',
+    identifier: [{ system: MIG_SYS, value: idValue }],
+    status: 'final',
+    category: [{ coding: [{ system: OBS_CAT_SYS, code: 'social-history' }] }],
+    code: { coding: [{ system: SYSTEMS.loinc, code: '72166-2', display: 'Tobacco smoking status' }] },
+    subject,
+    valueCodeableConcept: {
+      coding: [{ system: SYSTEMS.snomed, code: '8517006', display: 'Ex fumador' }],
+    },
+  };
+  return putEntry(obs, 'Observation', idValue);
+}
+
+/** Categorías que en realidad significan "no evaluado". */
+function isNonCategory(v: string): boolean {
+  return /^(no|no corresponde|0(\.0+)?)$/i.test(v.trim());
+}
 
 /**
  * Mapea una fila de FRCV a `MedicationStatement` (ATC) + `Goal` (metas).
@@ -161,9 +333,60 @@ export function mapFrcvRow(
   const warnings: string[] = [];
 
   for (const [col, raw] of Object.entries(row)) {
-    if (measureAlias(col) === 'dni' || !text(raw)) continue;
-
     const alias = measureAlias(col);
+    if (IDENTITY_ALIASES.has(alias) || HELPER_ALIASES.has(alias)) continue;
+    if (!text(raw)) continue;
+
+    // Objetivos de tratamiento cumplidos (si/no).
+    const ach = ACHIEVEMENT_BY_ALIAS.get(alias);
+    if (ach) {
+      matched.push(col);
+      entries.push(achievementGoal(subject, dni, ach.key, ach.description, isYes(raw)));
+      continue;
+    }
+
+    // Daño de órgano blanco: "HVI", "HVI + IR", "RAC".
+    if (ORGAN_DAMAGE_ALIASES.has(alias)) {
+      matched.push(col);
+      const { entries: es, unknown } = organDamageConditions(subject, dni, raw);
+      entries.push(...es);
+      unknown.forEach((u) =>
+        warnings.push(`DNI ${dni}: daño de órgano blanco desconocido "${u}" en "${col}" — se omite`)
+      );
+      continue;
+    }
+
+    // Ex tabaquista: mismo recurso que carga la spine (`EX TBQ`) → deduplica.
+    if (alias === EX_SMOKER_ALIAS) {
+      if (isYes(raw)) {
+        matched.push(col);
+        entries.push(smokingStatusEntry(subject, dni));
+      } else if (/^no$/i.test(raw.trim())) {
+        matched.push(col);
+      }
+      continue;
+    }
+
+    // Carga tabáquica acumulada.
+    if (alias === PACK_YEARS_ALIAS) {
+      const value = num(raw);
+      if (value !== undefined) {
+        matched.push(col);
+        entries.push(measureObsEntry(subject, dni, loincMeasure(PACK_YEARS, 'social-history'), value));
+      }
+      continue;
+    }
+
+    // Scores cargados a mano.
+    const score = SCORE_BY_ALIAS.get(alias);
+    if (score) {
+      if (!isNonCategory(raw)) {
+        matched.push(col);
+        entries.push(manualRisk(subject, dni, score.method, text(raw)!));
+      }
+      continue;
+    }
+
     const fam = MED_BY_ALIAS.get(alias);
     if (fam) {
       if (isYes(raw)) {

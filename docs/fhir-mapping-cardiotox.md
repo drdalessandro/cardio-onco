@@ -59,7 +59,11 @@ La fuente **no es una tabla plana**: es un libro de cálculo **relacional** de 9
 - **`Datos_fármacos`** probablemente contiene el puntaje de tratamiento por droga que falta para cerrar **SAC** (los 0–4 puntos de tratamiento). *Pendiente: sus valores.*
 - **PREVENT — banda ASCVD estándar (resuelto).** De las dos columnas PREVENT de Cardiotox, la autoritativa (confirmada por el autor) es la **ASCVD estándar ACC/AHA**: **bajo <5 · límite 5–7,4 · intermedio 7,5–19,9 · alto ≥20**, aplicada al riesgo **ASCVD** a 10 años (no al ECV total). `preventCategory()` implementa esa banda; `preventCategoryAlt()` deja disponible la alternativa (bajo <5 · inter 5–7,5 · moderado 7,5–10 · alto >10) sobre el mismo % — ambas sobre un único valor calculado. Etiquetas del value-set (hoja `Datos_fármacos`): Bajo · Límite · Intermedio · Alto.
 - **Migración:** el Bot no migra "Cardiotox sola"; hace *join* por `DNI` → `Patient` con basal (Cardiotox) + serie de FEVI (Ecocardiogramas_control) + serie de ECG (Estudios_Complementarios) + meds/objetivos CKM (FRCV). ✅ **Implementado** en `src/cardiotox-mapping/migration/workbook.ts` (ver roadmap §3).
-  - ⚠ **Pendiente de validación:** los nombres de columna de las hojas seriadas y de FRCV se resuelven por **alias**, calibrados con lo documentado aquí. Antes de migrar en serio hay que correr `migrate.ts --inspect` contra el export real y revisar la lista "SIN MAPEAR" — cada columna no reconocida es un alias a agregar, nunca un dato a inventar.
+  - ✅ **Validado contra el export real** (`migrate.ts --inspect`, libro *Mari_Curie_Cardiotoxicidad*, 9 hojas). Nombres reales de hoja: `Cardiotox`, `Ecocardiogramas control`, `Estudios Complementarios`, `QT cardiotox`, `FRCV`, `Datos extras`, `Datos fármacos`, `Estadísticas`, `Colores` (con **espacios**, no guiones bajos).
+  - **Estructura confirmada:** una fila por DNI en todas las hojas (lo "seriado" está en los **bloques de columnas repetidos**, no en filas repetidas). `Ecocardiogramas control` = 121 col con 6 bloques de eco; `Estudios Complementarios` = 23 col, ECG único sin columna de fecha; `QT cardiotox` = 165 col (snapshot + 2º bloque de eco, sólo 6 filas); `FRCV` = 38 col.
+  - **Cobertura tras la calibración:** de 63 columnas sin mapear se pasó a **3**. Corrida real: 327 pacientes · 15.025 recursos · 1.340 entries fusionadas · 0 `request.url` duplicadas · 0 referencias colgadas.
+  - ⚠ **Sin mapear (pendiente de decisión):** `ultimo control` y `PROXIMO CONTROL` (→ `Appointment`, recurso aún no implementado en el migrador) y `Uso` de FRCV (significado ambiguo — a confirmar con el autor).
+  - ⚠ **Calidad de datos detectada:** 71 filas de `Cardiotox` sin DNI (se omiten), 25 DNIs presentes sólo en hojas seriadas (*huérfanos*: se omiten salvo `--include-orphans`) y 2 DNIs repetidos en FRCV. El DNI se normaliza con `dniValue()` porque la planilla lo guarda como número (`10547059.0`).
 
 ---
 
@@ -131,7 +135,7 @@ Agrupadas en un `DiagnosticReport` (LOINC `59063-1` "US Cardiac study") con cate
 | `E/É` (E/e') | `LOCAL .../e-over-e-prime` | `{ratio}` | — |
 | `S Lat` | `LOCAL .../tissue-doppler-s-lateral` | `cm/s` | Onda S' lateral |
 | `Disf Diasto` | `Observation` `valueCodeableConcept` SNOMED `(verificar)` | — | Grado de disfunción diastólica |
-| `Valvulopatia leve/moderada/severa/grave` | `Condition` (ICD-10 `I34–I39`) + `Observation` severidad | — | Una `Condition` por válvula con severidad como `Observation` o `Condition.severity` |
+| `Valvulopatia leve/moderada/severa/grave` | `Condition` (ICD-10 `I34–I39`) + `Condition.severity` (SNOMED) | — | ✅ **Implementado.** Verificado contra el export real: la columna **no es booleana**, su valor lista **qué válvula** (`IT`, `IM`, `IAo`, `IP`, y combinaciones tipo `IT IM`) y la **columna** da la severidad. → una `Condition` por válvula, con `severity` = leve `255604002` / moderada `6736007` / severa `24484000`. El identifier incluye la severidad, así una válvula que progresa de leve a moderada queda como dos `Condition` con onsets distintos y no se pierde la evolución. Códigos de lesión en `VALVE_LESIONS` `(verificar)` |
 | `Derrame pericardico` | `Condition` SNOMED `373945007` / ICD-10 `I31.3` + `Observation` cuantía | — | — |
 
 ---
