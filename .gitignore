@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 package-lock.json
+
+# Configuración local con credenciales — usar .env.defaults como plantilla.
+# `vite.config.ts` crea .env automáticamente si falta.
+.env
+.env.local
 data/core/example-bots.json
 
 # Claude Code

@@ -123,12 +123,22 @@ Full Medplum-powered patient chart: encounter notes, SOAP format, clinical impre
 
 - Node.js ≥ 20
 - A running [Medplum AR](https://www.medplum.com.ar/docs/self-hosting) instance (self-hosted or [cloud](https://app.medplum.com.ar))
+- **A Medplum `Project`** for this deployment, plus a `ClientApplication` inside it
+
+> **Why a dedicated Project?** The `Project` is Medplum's multi-tenancy boundary: it
+> isolates resources, bots, subscriptions, access policies and credentials. Running
+> Cardio-Onco in its own Project keeps it independent from other programmes on the same
+> server. Because a `ClientApplication` belongs to exactly one Project, **its credentials
+> determine where everything gets installed** — you cannot seed the wrong Project by
+> mistake. Note that patients are *not* shared across Projects: the same person in two
+> Projects is two separate `Patient` resources.
 
 ### 1. Clone the repo
 
 ```bash
 git clone https://github.com/drdalessandro/cardio-onco.git
 cd cardio-onco
+npm install
 ```
 
 ### 2. Configure environment
@@ -137,41 +147,48 @@ cd cardio-onco
 cp .env.defaults .env
 ```
 
-Edit `.env` and set your Medplum instance:
+Edit `.env` with your instance and the credentials of the `ClientApplication`
+**of the target Project**:
 
 ```env
-MEDPLUM_BASE_URI=https://api.medplum.com.ar   # or your own instance
+MEDPLUM_BASE_URL="https://api.medplum.com.ar"   # or your own instance
 MEDPLUM_CLIENT_ID=your-client-id
+MEDPLUM_CLIENT_SECRET=your-client-secret
 ```
 
-### 3. Install dependencies
+### 3. Bootstrap the Project
 
-```bash
-npm install
-```
-
-### 4. Load reference data
-
-Upload terminologies, questionnaires, and ICD-10 conditions:
-
-```bash
-npm run upload:core
-```
-
-Optionally load example patient data:
-
-```bash
-npm run upload:example
-```
-
-### 5. Build and deploy bots
+Build the bots first (this generates the deployable bundle), then preview what will be
+installed:
 
 ```bash
 npm run build:bots
-npm run deploy:bots
+npm run bootstrap          # dry-run: prints exactly what would be installed
 ```
 
-### 6. Run locally
+The dry-run writes nothing. When the plan looks right, apply it:
+
+```bash
+npm run bootstrap -- --execute
+```
+
+This installs, in dependency order: terminologies (ICD-10 cardio-onco, ANMAT
+vademecum), encounter types, evolution-note questionnaires, and the bots with their
+subscriptions. Before writing, it prints the **target Project name and id** so you can
+confirm the destination.
+
+Every bundle uses conditional `PUT`, so the bootstrap is **idempotent** — re-running it
+updates instead of duplicating.
+
+Individual steps are also available:
+
+```bash
+npm run upload:core      # terminologies + questionnaires only
+npm run deploy:bots      # bots + subscriptions only
+npm run upload:example   # optional demo patient
+```
+
+### 4. Run locally
 
 ```bash
 npm run dev
@@ -179,14 +196,30 @@ npm run dev
 
 App runs at **http://localhost:3000** 🎉
 
+### 5. Migrate existing patient data (optional)
+
+If you are migrating from the Cardiotox spreadsheet, see
+[`docs/fhir-mapping-cardiotox.md`](docs/fhir-mapping-cardiotox.md). Always start with
+`--inspect`, then a small `--limit` run, before the full migration.
+
 ---
 
 ## 🔧 Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `MEDPLUM_BASE_URI` | Base URL of your Medplum FHIR server | `https://api.medplum.com.ar/` |
-| `MEDPLUM_CLIENT_ID` | OAuth2 client ID for your Medplum project | — |
+| `MEDPLUM_BASE_URL` | Base URL of your Medplum FHIR server | `https://api.medplum.com.ar` |
+| `MEDPLUM_CLIENT_ID` | `ClientApplication` id — **determines the target Project** | — |
+| `MEDPLUM_CLIENT_SECRET` | `ClientApplication` secret (bootstrap and migration only) | — |
+| `GOOGLE_CLIENT_ID` | Google OAuth client id, if Google sign-in is enabled | — |
+
+`vite.config.ts` sets `envPrefix: ['MEDPLUM_', 'GOOGLE_']`, so those prefixes are
+*eligible* for the front-end build. Vite only inlines variables the client code actually
+references (`MEDPLUM_BASE_URL`, `MEDPLUM_CLIENT_ID`, `GOOGLE_CLIENT_ID` via
+`src/config.ts`), and `MEDPLUM_CLIENT_SECRET` is **verified not to appear in the built
+bundle**. Even so, the secret is only needed by the Node scripts (bootstrap and
+migration) — prefer supplying it through the environment in CI/CD rather than committing
+it anywhere.
 
 ---
 

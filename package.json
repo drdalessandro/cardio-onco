@@ -6,6 +6,10 @@
   "scripts": {
     "build": "npm run build:bots && tsc && vite build",
     "build:bots": "npm run clean && tsc --project tsconfig-bots.json && node --no-warnings esbuild-script.mjs && tsx src/scripts/deploy-bots.ts",
+    "bootstrap": "tsx src/scripts/bootstrap-project.ts",
+    "upload:core": "tsx src/scripts/bootstrap-project.ts --seeds --execute",
+    "upload:example": "tsx src/scripts/bootstrap-project.ts --example --execute",
+    "deploy:bots": "tsx src/scripts/bootstrap-project.ts --bots --execute",
     "clean": "rimraf dist",
     "dev": "vite",
     "lint": "eslint src/",
