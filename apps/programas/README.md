@@ -40,8 +40,45 @@ el delta chico y explícito es lo que evita repetirlo. Tampoco se vendorizan los
 | Archivo del overlay | Qué cambia |
 |---|---|
 | `src/pages/CheckInPage.tsx` | Check-in cardio-oncológico (nuevo) |
-| `src/Router.tsx` | `+` ruta `check-in` · `−` `membership-and-billing` |
+| `src/pages/MyAppointmentsPage.tsx` | Mis turnos — el upstream sólo permite **reservar**, no lista los que ya tenés |
+| `src/pages/info/articles.ts` | 6 artículos de educación al paciente (**copiado textual** del fork) |
+| `src/pages/info/InfoPage.tsx` | Índice y lectura de artículos (Tailwind → Mantine) |
+| `src/pages/health-record/Measurement.data.ts` | Catálogo en castellano + FEVI, NT-proBNP, troponinas |
+| `src/pages/health-record/Measurement.tsx` | Series múltiples por código, no por `component[]` (ver abajo) |
+| `src/pages/health-record/Vitals.tsx` | Índice navegable de trayectorias |
+| `src/Router.tsx` | `+` `check-in`, `mis-turnos`, `info` · `−` `membership-and-billing` |
 | `.env.defaults` | Apunta a `api.medplum.com.ar`, documenta el Project |
+
+## Páginas portadas del fork anterior
+
+`EchoMeasurement.tsx` y `LabMeasurement.tsx` (~250 líneas con el LOINC
+hardcodeado adentro) **no se portaron como páginas**: la página genérica
+`Measurement.tsx` del upstream ya grafica cualquier entrada del catálogo, así
+que FEVI, NT-proBNP y troponinas son ahora *datos*. Agregar una medición es
+agregar un objeto a `Measurement.data.ts`.
+
+Los artículos de `info/` se copiaron **textuales**: están adaptados de las guías
+ESC/SEC de cardio-oncología para pacientes y reescribirlos sería una decisión
+clínica, no técnica.
+
+### Por qué `Measurement.tsx` se sobrescribe
+
+Cuando una medición tiene más de una serie, el upstream busca **un** Observation
+panel y lee `obs.component[i]` — así modela la presión arterial. Este backend
+escribe **una Observation por medición**: sistólica y diastólica son recursos
+separados, igual que troponina I y T, porque es lo que dice el mapeo FHIR del
+proyecto y lo que producen el migrador y el check-in.
+
+Con la lógica del upstream, la presión arterial mostraría un gráfico vacío y la
+troponina rompería al leer `component[0]`. El overlay consulta cada serie por su
+propio código y alinea las fechas entre series.
+
+> Este desajuste lo encontró un test, no una prueba manual:
+> `src/cardiotox-mapping/front-catalog-consistency.test.ts` (en el repo
+> cardio-onco) verifica que **todo código LOINC del catálogo del front exista en
+> el diccionario del backend**. Si divergen, la trayectoria queda vacía sin
+> ningún error visible. También detectó que faltaba hs-cTnT (`67151-1`) en el
+> diccionario.
 
 `setup.sh` además borra `MembershipAndBilling.tsx`: la facturación viene
 heredada de FooMedical, no aplica a un hospital público, y su recurso
@@ -85,9 +122,12 @@ resolver los códigos).
 
 ## Pendiente
 
-- Portar del fork viejo: `get-care`, `lab-results`, `images`, `info` (~800
-  líneas). El check-in ya no hace falta portarlo: ahora lo define el backend.
-- Marca: `index.html`, textos de `HomePage` y `LandingPage` siguen diciendo
-  FooMedical.
-- Las imágenes de stock del upstream son de FooMedical — reemplazar por las del
-  Marie Curie.
+- **Marca**: `index.html` y los textos de `HomePage` / `LandingPage` siguen
+  diciendo FooMedical.
+- **Imágenes**: las del upstream son fotos de stock de FooMedical — reemplazar
+  por las del Marie Curie.
+- **PDF de la guía**: `articles.ts` enlaza a
+  `/guia-esc-cardio-oncologia-pacientes.pdf`; copiar el archivo a `public/`
+  desde el repo del fork anterior o el link queda roto.
+- **Navegación**: agregar `check-in`, `mis-turnos` e `info` al menú (hoy las
+  rutas existen pero no hay entrada de menú).

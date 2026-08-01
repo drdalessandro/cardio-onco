@@ -21,6 +21,8 @@ import { ActionItem } from './pages/care-plan/ActionItem';
 import { ActionItems } from './pages/care-plan/ActionItems';
 import { CheckInPage } from './pages/CheckInPage';
 import { GetCare } from './pages/GetCarePage';
+import { ArticlePage, InfoPage } from './pages/info/InfoPage';
+import { MyAppointmentsPage } from './pages/MyAppointmentsPage';
 import { HealthRecord } from './pages/health-record';
 import { LabResult } from './pages/health-record/LabResult';
 import { LabResults } from './pages/health-record/LabResults';
@@ -73,6 +75,11 @@ export function Router(): JSX.Element {
         <Route path="action-items/:itemId" element={<ActionItem />} />
       </Route>
       <Route path="get-care" element={<GetCare />} />
+      {/* Turnos ya reservados — GetCare sólo permite reservar nuevos. */}
+      <Route path="mis-turnos" element={<MyAppointmentsPage />} />
+      {/* Educación al paciente (adaptado de las guías ESC/SEC). */}
+      <Route path="info" element={<InfoPage />} />
+      <Route path="info/:articleId" element={<ArticlePage />} />
       <Route path="smart-health-links" element={<SmartHealthLinksPage />} />
       <Route path="account" element={<AccountPage />}>
         <Route index element={<Navigate replace to="/account/profile" />} />
