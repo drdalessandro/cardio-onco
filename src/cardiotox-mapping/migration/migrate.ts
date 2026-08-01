@@ -25,23 +25,42 @@
  *                        columnas no se reconocen antes de migrar.
  *   --include-orphans    Crea Patient mínimo para DNIs que sólo están en hojas
  *                        seriadas (por defecto se omiten con advertencia).
+ *   --limit <N>          Procesa sólo los primeros N pacientes (smoke test).
  *   --tab                Los archivos son TSV.
  *   --out <ruta.json>    Destino del dry-run.
  *   --execute            Sube a Medplum (requiere credenciales).
  *
  * Credenciales (sólo --execute):
- *   MEDPLUM_BASE_URL   (default https://api.epa-bienestar.com.ar/fhir)
+ *   MEDPLUM_BASE_URL   (default https://api.medplum.com.ar — se lee de .env)
  *   MEDPLUM_CLIENT_ID  MEDPLUM_CLIENT_SECRET
  */
 import { MedplumClient } from '@medplum/core';
-import { mkdirSync, readFileSync, writeFileSync } from 'fs';
+import type { Bundle } from '@medplum/fhirtypes';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { dirname } from 'path';
 import { parseCsv, rowsToObjects } from './parsers';
 import { joinWorkbook } from './workbook';
 import type { SheetName, Workbook } from './workbook';
 
 const DEFAULT_OUT = 'data/example/cardiotox-migration-dryrun.json';
-const DEFAULT_BASE_URL = 'https://api.epa-bienestar.com.ar/fhir';
+
+/**
+ * Servidor FHIR del proyecto — Favaloro | Medplum Argentina.
+ * Debe coincidir con `MEDPLUM_BASE_URL` de `.env`; se deja explícito acá para
+ * que un `--execute` sin la variable seteada NO escriba en otro servidor.
+ */
+const DEFAULT_BASE_URL = 'https://api.medplum.com.ar';
+
+/** Carga `.env` (sin dependencias: el proyecto no usa dotenv). */
+function loadDotEnv(file = '.env'): void {
+  if (!existsSync(file)) return;
+  for (const line of readFileSync(file, 'utf-8').split('\n')) {
+    const m = line.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*)$/i);
+    if (!m) continue;
+    const value = m[2].trim().replace(/^["']|["']$/g, '');
+    if (value && process.env[m[1]] === undefined) process.env[m[1]] = value;
+  }
+}
 
 /** Flag de CLI → hoja del libro. */
 const SHEET_FLAGS: Array<{ flag: string; sheet: SheetName }> = [
@@ -62,6 +81,7 @@ function die(msg: string): never {
 }
 
 function main(): Promise<void> {
+  loadDotEnv();
   const args = process.argv.slice(2);
   const flagValues = new Set(SHEET_FLAGS.map((s) => flagValue(args, s.flag)).filter(Boolean));
   const spineFile = args.find((a) => !a.startsWith('--') && !flagValues.has(a) && a !== flagValue(args, '--out'));
@@ -110,43 +130,72 @@ function main(): Promise<void> {
     return Promise.resolve();
   }
 
+  // `--limit N` acota la corrida a los primeros N pacientes: la primera subida
+  // real conviene hacerla con un puñado y verificar antes de mandar todo.
+  const limit = Number(flagValue(args, '--limit') ?? NaN);
+  const bundles = Number.isFinite(limit) && limit > 0 ? result.bundles.slice(0, limit) : result.bundles;
+  if (bundles.length !== result.bundles.length) {
+    console.log(`\n[limit] Se procesan los primeros ${bundles.length} de ${result.bundles.length} pacientes.`);
+  }
+
   if (!args.includes('--execute')) {
     const out = flagValue(args, '--out') ?? DEFAULT_OUT;
     mkdirSync(dirname(out), { recursive: true });
-    writeFileSync(out, JSON.stringify(result.bundles, null, 2));
-    console.log(`\n[dry-run] ${result.bundles.length} Bundle(s) escritos en ${out}`);
+    writeFileSync(out, JSON.stringify(bundles, null, 2));
+    console.log(`\n[dry-run] ${bundles.length} Bundle(s) escritos en ${out}`);
     console.log('Para subir a Medplum: agregá --execute (requiere MEDPLUM_CLIENT_ID/SECRET).');
     return Promise.resolve();
   }
 
-  return upload(result.bundles);
+  return upload(bundles);
 }
 
-async function upload(bundles: ReturnType<typeof joinWorkbook>['bundles']): Promise<void> {
+async function upload(bundles: Bundle[]): Promise<void> {
   const baseUrl = process.env.MEDPLUM_BASE_URL ?? DEFAULT_BASE_URL;
   const clientId = process.env.MEDPLUM_CLIENT_ID;
   const clientSecret = process.env.MEDPLUM_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
-    die('Faltan MEDPLUM_CLIENT_ID / MEDPLUM_CLIENT_SECRET para --execute.');
+    die(
+      'Faltan MEDPLUM_CLIENT_ID / MEDPLUM_CLIENT_SECRET para --execute.\n' +
+        '  Creá un ClientApplication en Medplum y exportá las credenciales, o cargalas en .env.'
+    );
   }
 
+  const resources = bundles.reduce((n, b) => n + (b.entry?.length ?? 0), 0);
+  console.log(`\n━━━ SUBIDA REAL ━━━`);
+  console.log(`Servidor: ${baseUrl}`);
+  console.log(`Pacientes: ${bundles.length} · Recursos: ${resources}`);
+  console.log('Idempotente (PUT por identifier): re-correr actualiza, no duplica.\n');
+
   const medplum = new MedplumClient({ baseUrl });
-  await medplum.startClientLogin(clientId, clientSecret);
-  console.log(`\nSubiendo a ${baseUrl} …`);
+  try {
+    await medplum.startClientLogin(clientId, clientSecret);
+  } catch (e) {
+    die(`No se pudo autenticar contra ${baseUrl}: ${(e as Error).message}`);
+  }
 
   let ok = 0;
-  let fail = 0;
+  const failures: Array<{ index: number; message: string }> = [];
   for (let i = 0; i < bundles.length; i++) {
     try {
       await medplum.executeBatch(bundles[i]);
       ok++;
     } catch (e) {
-      fail++;
-      console.error(`  ✗ Bundle ${i + 1}/${bundles.length}: ${(e as Error).message}`);
+      failures.push({ index: i + 1, message: (e as Error).message });
+    }
+    // Progreso cada 25 pacientes (o al final) para no inundar la consola.
+    if ((i + 1) % 25 === 0 || i === bundles.length - 1) {
+      console.log(`  … ${i + 1}/${bundles.length}  (✓ ${ok} · ✗ ${failures.length})`);
     }
   }
-  console.log(`\n✓ ${ok} OK · ✗ ${fail} con error`);
-  if (fail > 0) process.exit(1);
+
+  console.log(`\n✓ ${ok} OK · ✗ ${failures.length} con error`);
+  if (failures.length) {
+    console.error('\nPacientes con error (índice dentro de la corrida):');
+    failures.slice(0, 20).forEach((f) => console.error(`  ✗ #${f.index}: ${f.message}`));
+    if (failures.length > 20) console.error(`  … y ${failures.length - 20} más`);
+    process.exit(1);
+  }
 }
 
 main().catch((e) => {

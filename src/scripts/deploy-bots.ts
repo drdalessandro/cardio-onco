@@ -35,6 +35,13 @@ const Bots: BotDescription[] = [
     dist: 'dist/cardiotox-mapping/recalculate-scores-bot.js',
     criteria: 'Observation?code=2093-3,2085-9,8480-6,85354-9,98979-8,39156-5,4548-4,14959-1,72166-2',
   },
+  {
+    // Autorreporte del paciente → Observation, dirigido por los códigos que
+    // declara el propio Questionnaire (bot genérico: sirve para cualquiera).
+    src: 'src/cardiotox-mapping/checkin-to-observations-bot.ts',
+    dist: 'dist/cardiotox-mapping/checkin-to-observations-bot.js',
+    criteria: 'QuestionnaireResponse?status=completed',
+  },
 ];
 
 async function main(): Promise<void> {

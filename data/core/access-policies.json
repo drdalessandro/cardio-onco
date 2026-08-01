@@ -1,0 +1,213 @@
+{
+  "resourceType": "Bundle",
+  "type": "transaction",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:ap-cardio-onco-patient",
+      "request": {
+        "method": "PUT",
+        "url": "AccessPolicy?name=cardio-onco-patient"
+      },
+      "resource": {
+        "resourceType": "AccessPolicy",
+        "name": "cardio-onco-patient",
+        "compartment": { "reference": "%patient" },
+        "resource": [
+          {
+            "resourceType": "Patient",
+            "compartment": { "reference": "%patient" },
+            "interaction": ["read", "update"],
+            "readonlyFields": ["identifier", "deceasedBoolean", "deceasedDateTime", "link", "managingOrganization"]
+          },
+          {
+            "resourceType": "Observation",
+            "compartment": { "reference": "%patient" },
+            "interaction": ["read", "search", "create"]
+          },
+          {
+            "resourceType": "QuestionnaireResponse",
+            "compartment": { "reference": "%patient" },
+            "interaction": ["read", "search", "create", "update"]
+          },
+          {
+            "resourceType": "Questionnaire",
+            "interaction": ["read", "search"]
+          },
+          {
+            "resourceType": "Communication",
+            "compartment": { "reference": "%patient" },
+            "interaction": ["read", "search", "create"]
+          },
+          {
+            "resourceType": "MedicationRequest",
+            "compartment": { "reference": "%patient" },
+            "interaction": ["read", "search", "create"]
+          },
+          {
+            "resourceType": "MedicationStatement",
+            "compartment": { "reference": "%patient" },
+            "interaction": ["read", "search", "create"]
+          },
+          {
+            "resourceType": "Immunization",
+            "compartment": { "reference": "%patient" },
+            "interaction": ["read", "search"]
+          },
+          {
+            "resourceType": "ServiceRequest",
+            "compartment": { "reference": "%patient" },
+            "interaction": ["read", "search"]
+          },
+          {
+            "resourceType": "DiagnosticReport",
+            "compartment": { "reference": "%patient" },
+            "interaction": ["read", "search"]
+          },
+          {
+            "resourceType": "CarePlan",
+            "compartment": { "reference": "%patient" },
+            "interaction": ["read", "search"]
+          },
+          {
+            "resourceType": "Condition",
+            "compartment": { "reference": "%patient" },
+            "interaction": ["read", "search"]
+          },
+          {
+            "resourceType": "RiskAssessment",
+            "compartment": { "reference": "%patient" },
+            "interaction": ["read", "search"]
+          },
+          {
+            "resourceType": "Goal",
+            "compartment": { "reference": "%patient" },
+            "interaction": ["read", "search"]
+          },
+          {
+            "resourceType": "Appointment",
+            "compartment": { "reference": "%patient" },
+            "interaction": ["read", "search", "create", "update"]
+          },
+          {
+            "resourceType": "Coverage",
+            "compartment": { "reference": "%patient" },
+            "interaction": ["read", "search", "create", "update"]
+          },
+          {
+            "resourceType": "Schedule",
+            "interaction": ["read", "search"]
+          },
+          {
+            "resourceType": "Slot",
+            "interaction": ["read", "search"]
+          },
+          {
+            "resourceType": "Practitioner",
+            "interaction": ["read", "search"],
+            "hiddenFields": ["telecom", "address", "identifier"]
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:ap-cardio-onco-clinician",
+      "request": {
+        "method": "PUT",
+        "url": "AccessPolicy?name=cardio-onco-clinician"
+      },
+      "resource": {
+        "resourceType": "AccessPolicy",
+        "name": "cardio-onco-clinician",
+        "resource": [
+          { "resourceType": "Patient" },
+          { "resourceType": "EpisodeOfCare" },
+          { "resourceType": "Encounter" },
+          { "resourceType": "Condition" },
+          { "resourceType": "Observation" },
+          { "resourceType": "DiagnosticReport" },
+          { "resourceType": "Procedure" },
+          { "resourceType": "MedicationStatement" },
+          { "resourceType": "MedicationRequest" },
+          { "resourceType": "Immunization" },
+          { "resourceType": "FamilyMemberHistory" },
+          { "resourceType": "RiskAssessment" },
+          { "resourceType": "CarePlan" },
+          { "resourceType": "Goal" },
+          { "resourceType": "Task" },
+          { "resourceType": "ServiceRequest" },
+          { "resourceType": "Appointment" },
+          { "resourceType": "Schedule" },
+          { "resourceType": "Slot" },
+          { "resourceType": "Coverage" },
+          { "resourceType": "Communication" },
+          { "resourceType": "QuestionnaireResponse" },
+          { "resourceType": "DocumentReference" },
+          { "resourceType": "Media" },
+          { "resourceType": "Binary" },
+          { "resourceType": "Group" },
+          { "resourceType": "ResearchStudy", "interaction": ["read", "search"] },
+          { "resourceType": "ResearchSubject", "interaction": ["read", "search"] },
+          { "resourceType": "Practitioner", "interaction": ["read", "search"] },
+          { "resourceType": "PractitionerRole", "interaction": ["read", "search"] },
+          { "resourceType": "CareTeam", "interaction": ["read", "search"] },
+          { "resourceType": "Organization", "interaction": ["read", "search"] },
+          { "resourceType": "Questionnaire", "interaction": ["read", "search"] },
+          { "resourceType": "PlanDefinition", "interaction": ["read", "search"] },
+          { "resourceType": "ActivityDefinition", "interaction": ["read", "search"] },
+          { "resourceType": "CodeSystem", "interaction": ["read", "search"] },
+          { "resourceType": "ValueSet", "interaction": ["read", "search"] }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:ap-cardio-onco-researcher",
+      "request": {
+        "method": "PUT",
+        "url": "AccessPolicy?name=cardio-onco-researcher"
+      },
+      "resource": {
+        "resourceType": "AccessPolicy",
+        "name": "cardio-onco-researcher",
+        "resource": [
+          {
+            "resourceType": "Patient",
+            "interaction": ["read", "search"],
+            "hiddenFields": [
+              "name",
+              "telecom",
+              "address",
+              "photo",
+              "contact",
+              "identifier",
+              "generalPractitioner",
+              "managingOrganization"
+            ]
+          },
+          {
+            "resourceType": "Observation",
+            "interaction": ["read", "search"],
+            "hiddenFields": ["note", "performer"]
+          },
+          { "resourceType": "Condition", "interaction": ["read", "search"], "hiddenFields": ["note", "recorder", "asserter"] },
+          { "resourceType": "MedicationStatement", "interaction": ["read", "search"], "hiddenFields": ["note", "informationSource"] },
+          { "resourceType": "MedicationRequest", "interaction": ["read", "search"], "hiddenFields": ["note", "requester"] },
+          { "resourceType": "RiskAssessment", "interaction": ["read", "search"], "hiddenFields": ["note", "performer"] },
+          { "resourceType": "DiagnosticReport", "interaction": ["read", "search"], "hiddenFields": ["conclusion", "performer", "resultsInterpreter", "presentedForm"] },
+          { "resourceType": "Procedure", "interaction": ["read", "search"], "hiddenFields": ["note", "performer"] },
+          { "resourceType": "EpisodeOfCare", "interaction": ["read", "search"], "hiddenFields": ["careManager", "team"] },
+          { "resourceType": "Encounter", "interaction": ["read", "search"], "hiddenFields": ["participant", "serviceProvider"] },
+          { "resourceType": "Goal", "interaction": ["read", "search"], "hiddenFields": ["note", "expressedBy"] },
+          { "resourceType": "CarePlan", "interaction": ["read", "search"], "hiddenFields": ["note", "author", "contributor"] },
+          { "resourceType": "FamilyMemberHistory", "interaction": ["read", "search"], "hiddenFields": ["note"] },
+          { "resourceType": "QuestionnaireResponse", "interaction": ["read", "search"], "hiddenFields": ["author", "source"] },
+          { "resourceType": "Group", "interaction": ["read", "search"] },
+          { "resourceType": "ResearchStudy", "interaction": ["read", "search"] },
+          { "resourceType": "ResearchSubject", "interaction": ["read", "search"] },
+          { "resourceType": "Questionnaire", "interaction": ["read", "search"] },
+          { "resourceType": "CodeSystem", "interaction": ["read", "search"] },
+          { "resourceType": "ValueSet", "interaction": ["read", "search"] }
+        ]
+      }
+    }
+  ]
+}

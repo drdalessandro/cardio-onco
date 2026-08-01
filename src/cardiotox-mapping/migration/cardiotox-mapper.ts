@@ -21,7 +21,7 @@ import type {
 import { CHEMO_FAMILIES, CONDITION_CODES, OBSERVATION_CODES, SYSTEMS, riskMethodConcept } from '../data-dictionary';
 import type { ChemoFamily, ConditionCode, ObsCode, RiskScoreMethod } from '../data-dictionary';
 import { MIG_SYS, OBS_CAT_SYS, loincMeasure, measureObsEntry, patientFullUrl, putEntry } from './entry-builders';
-import { birthDateFromAge, isYes, num, partialDate, slug, text } from './parsers';
+import { birthDateFromAge, dniValue, isYes, num, partialDate, slug, text } from './parsers';
 
 export type CardiotoxRow = Record<string, string>;
 
@@ -146,7 +146,7 @@ function manualRiskEntry(subject: Reference<Patient>, dni: string, method: RiskS
  */
 export function mapCardiotoxRow(row: CardiotoxRow): MapResult {
   const warnings: string[] = [];
-  const dni = text(row['DNI']);
+  const dni = dniValue(row['DNI']);
   if (!dni) {
     return { entries: [], warnings: ['Fila sin DNI — se omite'] };
   }

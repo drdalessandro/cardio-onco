@@ -34,8 +34,11 @@ import { SYSTEMS } from '../data-dictionary';
 import { mapCardiotoxRow } from './cardiotox-mapper';
 import { patientFullUrl, patientRef } from './entry-builders';
 import { mapFrcvRow } from './frcv-mapper';
-import { ECG_CATALOG, ECHO_CATALOG, QT_CATALOG, mapSerialRow } from './serial-sheets';
-import { partialDate, text } from './parsers';
+import {
+  ECG_CATALOG, ECG_QUALITATIVE, ECHO_CATALOG, ECHO_QUALITATIVE,
+  QT_CATALOG, QT_QUALITATIVE, mapSerialRow,
+} from './serial-sheets';
+import { dniValue, partialDate } from './parsers';
 
 /** Hojas del libro que se migran. */
 export type SheetName =
@@ -75,14 +78,14 @@ export interface JoinResult {
 }
 
 const SERIAL_CATALOGS = {
-  Ecocardiogramas_control: ECHO_CATALOG,
-  Estudios_Complementarios: ECG_CATALOG,
-  QT_cardiotox: QT_CATALOG,
+  Ecocardiogramas_control: { measures: ECHO_CATALOG, qualitative: ECHO_QUALITATIVE },
+  Estudios_Complementarios: { measures: ECG_CATALOG, qualitative: ECG_QUALITATIVE },
+  QT_cardiotox: { measures: QT_CATALOG, qualitative: QT_QUALITATIVE },
 } as const;
 
 /** Fila → DNI limpio (o `undefined` si la fila no lo trae). */
 function rowDni(row: Record<string, string>): string | undefined {
-  return text(row['DNI']);
+  return dniValue(row['DNI']);
 }
 
 /** `Patient` mínimo (sólo DNI) para huérfanos, cuando se habilita. */
@@ -161,7 +164,8 @@ export function joinWorkbook(wb: Workbook): JoinResult {
     rows.forEach((row, i) => {
       const dni = resolve(rowDni(row), sheet, i + 2);
       if (!dni) return;
-      const res = mapSerialRow(row, SERIAL_CATALOGS[sheet], dni, patientRef(dni), baselineDate.get(dni));
+      const { measures, qualitative } = SERIAL_CATALOGS[sheet];
+      const res = mapSerialRow(row, measures, dni, patientRef(dni), baselineDate.get(dni), qualitative);
       res.matched.forEach((h) => matched.add(h));
       res.ignored.forEach((h) => ignored.add(h));
       res.warnings.forEach((w) => warnings.push(`${sheet}: ${w}`));

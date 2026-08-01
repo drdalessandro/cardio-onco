@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useMedplum, Button } from '@medplum/react';
+import { Button } from '@mantine/core';
+import { useMedplum } from '@medplum/react';
 
 interface ExportButtonProps {
   patientId: string;

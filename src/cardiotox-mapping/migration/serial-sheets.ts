@@ -22,17 +22,30 @@
  * revisarlas contra el export real y agregar el alias que falte.
  */
 
-import type { BundleEntry, Patient, Reference } from '@medplum/fhirtypes';
-import { LOCAL_OBSERVATION_CODES, OBSERVATION_CODES } from '../data-dictionary';
+import type { BundleEntry, Coding, Condition, Observation, Patient, Reference } from '@medplum/fhirtypes';
+import {
+  ECG_CONDITIONS, ECG_OBSERVATIONS, ECHO_FINDINGS, LOCAL_OBSERVATION_CODES,
+  OBSERVATION_CODES, SEVERITY_CODES, SYSTEMS, VALVE_LESIONS,
+} from '../data-dictionary';
+import type { FindingCode, SeverityKey } from '../data-dictionary';
 import type { Measure } from './entry-builders';
-import { loincMeasure, localMeasure, measureObsEntry } from './entry-builders';
-import { num, partialDate, slug } from './parsers';
+import { MIG_SYS, OBS_CAT_SYS, loincMeasure, localMeasure, measureObsEntry, putEntry } from './entry-builders';
+import { cellKind, isYes, num, partialDate, slug } from './parsers';
 
 /** Encabezado que abre un bloque nuevo (columna de fecha). */
 const DATE_HEADER = /fecha/i;
 
-/** Columnas de unión entre hojas — no son mediciones. */
-const JOIN_KEYS = new Set(['dni', 'nombre', 'apellido']);
+/**
+ * Columnas de identidad / administrativas que se repiten en cada hoja: no son
+ * mediciones y ya vienen de la spine. Se saltean para no ensuciar el reporte de
+ * cobertura con falsos "sin mapear".
+ */
+const JOIN_KEYS = new Set([
+  'dni', 'nombre', 'apellido', 'sexo', 'edad', 'telefono',
+  'inicio', 'dia-en-estudio', 'n-de-px', 'estado-paciente', 'estado-seguimiento',
+  'ultimo-control', 'proximo-control',
+]);
+
 
 /**
  * Normaliza un encabezado a su alias de catálogo: saca acentos/símbolos, el
@@ -45,6 +58,20 @@ export function measureAlias(header: string): string {
     .replace(/-?(control|basal|inicial|seguimiento)-?/g, '-')
     .replace(/^-+|-+$/g, '');
 }
+
+/**
+ * Columnas de la hoja QT que replican el snapshot de la spine (antropometría,
+ * laboratorio, doppler vascular): ya se migran desde `Cardiotox` con el mismo
+ * identifier, así que no son un hueco de mapeo y no se reportan como tal.
+ */
+const SPINE_COVERED = new Set(
+  [
+    'Peso (kg)', 'Peso minimo', 'Altura (m)', 'IMC', 'Peri abd (mts)', 'Peri Abd (cm)',
+    'Indice cintura/altura', 'Cr', 'HB', 'Col T', 'HDL', 'LDL', 'Trig', 'LPa', 'HbA1c',
+    'eritro', 'Glu', 'Clcr', 'Microalb', 'ECOG',
+    'Carótidas ateromatosas', 'Femorales normales', 'Femorales ateromatosas', 'Total',
+  ].map(measureAlias)
+);
 
 /** Catálogo: alias normalizado → medición codificada. */
 export type MeasureCatalog = Record<string, Measure>;
@@ -89,6 +116,41 @@ export const ECG_CATALOG: MeasureCatalog = catalog([
 /** QT_cardiotox mezcla ECG (foco QT) con un 2º bloque de eco. */
 export const QT_CATALOG: MeasureCatalog = { ...ECG_CATALOG, ...ECHO_CATALOG };
 
+// ─── Columnas cualitativas ───────────────────────────────────────────────────
+// No todo el eco/ECG es numérico. Tres formas distintas:
+//   `Valvulopatia leve|moderada|severa` → el VALOR dice qué válvula (`IT IM`),
+//        la COLUMNA dice la severidad  → una Condition por válvula con severity.
+//   `Disf Diasto`, `Derrame pericardico`… → 0/1               → Condition si 1.
+//   `RS`, `Trast rep`, `Q pat`…           → Sí/No             → Observation
+//        booleana (el "No" es clínicamente informativo: RS=No ≠ dato ausente).
+
+export type QualitativeKind = 'valve' | 'condition' | 'observation';
+
+export interface QualitativeCol {
+  kind: QualitativeKind;
+  severity?: SeverityKey;
+  finding?: FindingCode;
+}
+
+function qualitativeCatalog(defs: Array<[string, QualitativeCol]>): Record<string, QualitativeCol> {
+  return Object.fromEntries(defs.map(([alias, def]) => [measureAlias(alias), def]));
+}
+
+export const ECHO_QUALITATIVE = qualitativeCatalog([
+  ['Valvulopatia leve', { kind: 'valve', severity: 'leve' }],
+  ['Valvulopatia moderada', { kind: 'valve', severity: 'moderada' }],
+  ['Valvulopatia severa', { kind: 'valve', severity: 'severa' }],
+  ['Valvulopatia grave', { kind: 'valve', severity: 'severa' }],
+  ...ECHO_FINDINGS.map((f) => [f.source, { kind: 'condition' as const, finding: f }] as [string, QualitativeCol]),
+]);
+
+export const ECG_QUALITATIVE = qualitativeCatalog([
+  ...ECG_CONDITIONS.map((f) => [f.source, { kind: 'condition' as const, finding: f }] as [string, QualitativeCol]),
+  ...ECG_OBSERVATIONS.map((f) => [f.source, { kind: 'observation' as const, finding: f }] as [string, QualitativeCol]),
+]);
+
+export const QT_QUALITATIVE = { ...ECG_QUALITATIVE, ...ECHO_QUALITATIVE };
+
 /** Un bloque de mediciones y la fecha que lo encabeza. */
 export interface Block {
   index: number;
@@ -116,6 +178,94 @@ export function splitBlocks(headers: string[], row: Record<string, string>): Blo
   return blocks;
 }
 
+const CLINICAL_STATUS = {
+  coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-clinical', code: 'active' }],
+};
+const PROBLEM_LIST = [
+  { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/condition-category', code: 'problem-list-item' }] },
+];
+
+/** `0`/`0.0`/`No` → ausente. Cualquier otra cosa con contenido → presente. */
+function isAbsent(raw: string): boolean {
+  const t = raw.trim();
+  return /^(0(\.0+)?|no)$/i.test(t);
+}
+
+/**
+ * Condition de lesión valvular con severidad.
+ *
+ * El identifier incluye la severidad a propósito: si la misma válvula pasa de
+ * leve a moderada en un eco posterior, quedan dos `Condition` con onsets
+ * distintos y la progresión no se pierde (que es justo lo que importa en el
+ * seguimiento de cardiotoxicidad).
+ */
+function valveCondition(
+  subject: Reference<Patient>, dni: string, abbr: string, severity: SeverityKey, date?: string
+): BundleEntry | undefined {
+  const lesion = VALVE_LESIONS.find((v) => v.abbr.toLowerCase() === abbr.toLowerCase());
+  if (!lesion) return undefined;
+  const sev = SEVERITY_CODES[severity];
+  const idValue = `${dni}-cond-valve-${lesion.abbr.toLowerCase()}-${severity}`;
+  const cond: Condition = {
+    resourceType: 'Condition',
+    identifier: [{ system: MIG_SYS, value: idValue }],
+    clinicalStatus: CLINICAL_STATUS,
+    category: PROBLEM_LIST,
+    severity: { coding: [{ system: SYSTEMS.snomed, code: sev.code, display: sev.display }] },
+    code: {
+      coding: [
+        { system: SYSTEMS.icd10, code: lesion.icd10, display: lesion.display },
+        { system: SYSTEMS.snomed, code: lesion.snomed, display: lesion.display },
+      ],
+      text: `${lesion.display} ${sev.display.toLowerCase()}`,
+    },
+    subject,
+    onsetDateTime: date,
+  };
+  return putEntry(cond, 'Condition', idValue);
+}
+
+/** Condition de un hallazgo booleano presente. */
+function findingCondition(
+  subject: Reference<Patient>, dni: string, f: FindingCode, date?: string
+): BundleEntry {
+  const idValue = `${dni}-cond-${f.snomed}`;
+  const coding: Coding[] = [{ system: SYSTEMS.snomed, code: f.snomed, display: f.display }];
+  if (f.icd10) coding.unshift({ system: SYSTEMS.icd10, code: f.icd10, display: f.display });
+  const cond: Condition = {
+    resourceType: 'Condition',
+    identifier: [{ system: MIG_SYS, value: idValue }],
+    clinicalStatus: CLINICAL_STATUS,
+    category: PROBLEM_LIST,
+    code: { coding, text: f.display },
+    subject,
+    onsetDateTime: date,
+  };
+  return putEntry(cond, 'Condition', idValue);
+}
+
+/**
+ * Observation booleana de un hallazgo Sí/No.
+ * Se guarda también el "No" porque es informativo (p. ej. `RS = No` significa
+ * que el paciente NO está en ritmo sinusal, distinto de "no se evaluó").
+ */
+function findingObservation(
+  subject: Reference<Patient>, dni: string, f: FindingCode, present: boolean, date?: string, suffix?: string
+): BundleEntry {
+  const idValue = `${dni}-obs-${f.snomed}${date ? '-' + date : ''}${suffix ? '-' + suffix : ''}`;
+  const obs: Observation = {
+    resourceType: 'Observation',
+    identifier: [{ system: MIG_SYS, value: idValue }],
+    status: 'final',
+    category: [{ coding: [{ system: OBS_CAT_SYS, code: 'procedure' }] }],
+    code: { coding: [{ system: SYSTEMS.snomed, code: f.snomed, display: f.display }], text: f.display },
+    subject,
+    effectiveDateTime: date,
+    valueBoolean: present,
+  };
+  return putEntry(obs, 'Observation', idValue);
+}
+
 export interface SerialMapResult {
   entries: BundleEntry[];
   /** Encabezados resueltos contra el catálogo. */
@@ -139,7 +289,8 @@ export function mapSerialRow(
   cat: MeasureCatalog,
   dni: string,
   subject: Reference<Patient>,
-  fallbackDate?: string
+  fallbackDate?: string,
+  qual: Record<string, QualitativeCol> = {}
 ): SerialMapResult {
   const entries: BundleEntry[] = [];
   const matched: string[] = [];
@@ -151,18 +302,45 @@ export function mapSerialRow(
     let valuesInBlock = 0;
 
     for (const col of block.columns) {
-      if (JOIN_KEYS.has(measureAlias(col))) continue; // la clave de join no es una medición
-      const value = num(row[col]);
+      const alias = measureAlias(col);
+      // Ni las claves de join ni lo que ya migra la spine son mediciones nuevas.
+      if (JOIN_KEYS.has(alias) || SPINE_COVERED.has(alias)) continue;
+      const raw = row[col] ?? '';
+      if (cellKind(raw) !== 'value') continue; // vacío / no corresponde / no realizado
+      // Sin fecha, el índice de bloque desambigua para no pisar recursos.
+      const suffix = date ? undefined : `b${block.index}`;
+
+      // 1) Columnas cualitativas (valvulopatías, hallazgos Sí/No).
+      const q = qual[alias];
+      if (q) {
+        valuesInBlock++;
+        matched.push(col);
+        if (q.kind === 'valve') {
+          // El valor lista las válvulas afectadas: "IT", "IT IM", "IM + IAo".
+          if (isAbsent(raw)) continue;
+          for (const token of raw.split(/[\s,+/]+/).filter(Boolean)) {
+            const e = valveCondition(subject, dni, token, q.severity!, date);
+            if (e) entries.push(e);
+            else warnings.push(`DNI ${dni}: sigla de válvula desconocida "${token}" en "${col}" — se omite`);
+          }
+        } else if (q.kind === 'condition') {
+          if (!isAbsent(raw)) entries.push(findingCondition(subject, dni, q.finding!, date));
+        } else {
+          entries.push(findingObservation(subject, dni, q.finding!, isYes(raw) || !isAbsent(raw), date, suffix));
+        }
+        continue;
+      }
+
+      // 2) Mediciones numéricas.
+      const value = num(raw);
       if (value === undefined) continue;
       valuesInBlock++;
-      const measure = cat[measureAlias(col)];
+      const measure = cat[alias];
       if (!measure) {
         ignored.push(col);
         continue;
       }
       matched.push(col);
-      // Sin fecha, el índice de bloque desambigua para no pisar recursos.
-      const suffix = date ? undefined : `b${block.index}`;
       entries.push(measureObsEntry(subject, dni, measure, value, date, suffix));
     }
 

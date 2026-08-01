@@ -1,0 +1,150 @@
+{
+  "resourceType": "Bundle",
+  "type": "transaction",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:checkin-cardio-onco",
+      "request": {
+        "method": "PUT",
+        "url": "Questionnaire?name=checkin-cardio-onco"
+      },
+      "resource": {
+        "resourceType": "Questionnaire",
+        "name": "checkin-cardio-onco",
+        "title": "Check-in cardio-oncológico",
+        "status": "active",
+        "subjectType": ["Patient"],
+        "url": "https://api.epa-bienestar.com.ar/fhir/Questionnaire/checkin-cardio-onco",
+        "description": "Autorreporte del paciente entre controles. Cada item declara su código clínico en `item.code`: el bot genérico lo traduce a Observation sin lógica hardcodeada. Agregar una medición = editar este recurso, sin deploy.",
+        "item": [
+          {
+            "linkId": "vitales",
+            "text": "Signos vitales",
+            "type": "group",
+            "item": [
+              {
+                "linkId": "peso",
+                "text": "Peso",
+                "type": "quantity",
+                "code": [{ "system": "http://loinc.org", "code": "29463-7", "display": "Body weight" }],
+                "extension": [
+                  {
+                    "url": "http://hl7.org/fhir/StructureDefinition/questionnaire-unit",
+                    "valueCoding": { "system": "http://unitsofmeasure.org", "code": "kg", "display": "kg" }
+                  }
+                ]
+              },
+              {
+                "linkId": "tas",
+                "text": "Presión arterial sistólica",
+                "type": "quantity",
+                "code": [{ "system": "http://loinc.org", "code": "8480-6", "display": "Systolic blood pressure" }],
+                "extension": [
+                  {
+                    "url": "http://hl7.org/fhir/StructureDefinition/questionnaire-unit",
+                    "valueCoding": { "system": "http://unitsofmeasure.org", "code": "mm[Hg]", "display": "mmHg" }
+                  }
+                ]
+              },
+              {
+                "linkId": "tad",
+                "text": "Presión arterial diastólica",
+                "type": "quantity",
+                "code": [{ "system": "http://loinc.org", "code": "8462-4", "display": "Diastolic blood pressure" }],
+                "extension": [
+                  {
+                    "url": "http://hl7.org/fhir/StructureDefinition/questionnaire-unit",
+                    "valueCoding": { "system": "http://unitsofmeasure.org", "code": "mm[Hg]", "display": "mmHg" }
+                  }
+                ]
+              },
+              {
+                "linkId": "fc",
+                "text": "Frecuencia cardíaca",
+                "type": "quantity",
+                "code": [{ "system": "http://loinc.org", "code": "8867-4", "display": "Heart rate" }],
+                "extension": [
+                  {
+                    "url": "http://hl7.org/fhir/StructureDefinition/questionnaire-unit",
+                    "valueCoding": { "system": "http://unitsofmeasure.org", "code": "/min", "display": "lpm" }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "linkId": "sintomas",
+            "text": "¿Tuvo alguno de estos síntomas desde el último control?",
+            "type": "group",
+            "item": [
+              {
+                "linkId": "disnea",
+                "text": "Falta de aire (disnea)",
+                "type": "boolean",
+                "code": [{ "system": "http://snomed.info/sct", "code": "267036007", "display": "Disnea" }]
+              },
+              {
+                "linkId": "edemas",
+                "text": "Hinchazón de piernas o tobillos",
+                "type": "boolean",
+                "code": [{ "system": "http://snomed.info/sct", "code": "267038008", "display": "Edema de miembros inferiores" }]
+              },
+              {
+                "linkId": "palpitaciones",
+                "text": "Palpitaciones",
+                "type": "boolean",
+                "code": [{ "system": "http://snomed.info/sct", "code": "80313002", "display": "Palpitaciones" }]
+              },
+              {
+                "linkId": "dolor-toracico",
+                "text": "Dolor en el pecho",
+                "type": "boolean",
+                "code": [{ "system": "http://snomed.info/sct", "code": "29857009", "display": "Dolor torácico" }]
+              },
+              {
+                "linkId": "sincope",
+                "text": "Desmayo o pérdida de conocimiento",
+                "type": "boolean",
+                "code": [{ "system": "http://snomed.info/sct", "code": "272030005", "display": "Síncope" }]
+              }
+            ]
+          },
+          {
+            "linkId": "capacidad-funcional",
+            "text": "¿Cuánta actividad puede hacer sin agitarse?",
+            "type": "choice",
+            "code": [{ "system": "http://loinc.org", "code": "89247-1", "display": "NYHA class" }],
+            "answerOption": [
+              { "valueCoding": { "system": "http://snomed.info/sct", "code": "420300004", "display": "NYHA I — sin limitación" } },
+              { "valueCoding": { "system": "http://snomed.info/sct", "code": "421704003", "display": "NYHA II — limitación leve" } },
+              { "valueCoding": { "system": "http://snomed.info/sct", "code": "420913000", "display": "NYHA III — limitación marcada" } },
+              { "valueCoding": { "system": "http://snomed.info/sct", "code": "422293003", "display": "NYHA IV — síntomas en reposo" } }
+            ]
+          },
+          {
+            "linkId": "adherencia",
+            "text": "¿Tomó toda su medicación como se la indicaron?",
+            "type": "boolean",
+            "code": [{ "system": "http://loinc.org", "code": "71799-1", "display": "Medication adherence" }]
+          },
+          {
+            "linkId": "tabaquismo",
+            "text": "¿Fuma actualmente?",
+            "type": "choice",
+            "code": [{ "system": "http://loinc.org", "code": "72166-2", "display": "Tobacco smoking status" }],
+            "answerOption": [
+              { "valueCoding": { "system": "http://snomed.info/sct", "code": "77176002", "display": "Fumador actual" } },
+              { "valueCoding": { "system": "http://snomed.info/sct", "code": "8517006", "display": "Ex fumador" } },
+              { "valueCoding": { "system": "http://snomed.info/sct", "code": "266919005", "display": "Nunca fumó" } }
+            ]
+          },
+          {
+            "linkId": "comentario",
+            "text": "¿Algo más que quiera contarle a su equipo?",
+            "type": "text"
+          }
+        ]
+      }
+    }
+  ]
+}
