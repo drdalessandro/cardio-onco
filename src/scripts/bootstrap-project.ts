@@ -51,6 +51,9 @@ interface Step {
 }
 
 const STEPS: Step[] = [
+  // Las políticas van primero: definen quién puede ver qué antes de que entre
+  // el primer dato.
+  { group: 'seeds', file: 'data/core/access-policies.json', label: 'AccessPolicy (paciente · clínico · investigación)' },
   { group: 'seeds', file: 'data/core/condiciones-cie10.json', label: 'Terminología CIE-10 cardio-onco' },
   { group: 'seeds', file: 'data/core/medicamentos-argentina.json', label: 'Vademécum ANMAT' },
   { group: 'seeds', file: 'data/core/encounter-types.json', label: 'Tipos de encuentro' },
