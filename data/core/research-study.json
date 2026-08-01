@@ -1,0 +1,112 @@
+{
+  "resourceType": "Bundle",
+  "type": "transaction",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:study-cardiotox-marie-curie",
+      "request": {
+        "method": "PUT",
+        "url": "ResearchStudy?identifier=https://api.epa-bienestar.com.ar/fhir/CodeSystem/research-study|cardiotox-marie-curie"
+      },
+      "resource": {
+        "resourceType": "ResearchStudy",
+        "identifier": [
+          {
+            "system": "https://api.epa-bienestar.com.ar/fhir/CodeSystem/research-study",
+            "value": "cardiotox-marie-curie"
+          }
+        ],
+        "title": "Cardiotoxicidad en pacientes oncológicos — Hospital Municipal de Oncología Marie Curie",
+        "status": "active",
+        "primaryPurposeType": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/research-study-prim-purp-type",
+              "code": "screening",
+              "display": "Screening"
+            }
+          ]
+        },
+        "description": "Cohorte de seguimiento cardio-oncológico. Objetivo: caracterizar la incidencia y los predictores de disfunción cardíaca asociada al tratamiento oncológico (CTRCD) en una población de hospital público argentino, integrando datos clínicos, de laboratorio, ecocardiográficos y autorreportados por el paciente.",
+        "objective": [
+          { "name": "Incidencia de CTRCD según criterio ESC 2022 (caída de FEVI ≥10 puntos a <50%)" },
+          { "name": "Valor predictivo de los scores de riesgo basales (SAC, PREVENT, Framingham, SCORE2, Globorisk)" },
+          { "name": "Trayectoria de biomarcadores (troponina ultrasensible, NT-proBNP) previa a la caída de FEVI" },
+          { "name": "Adherencia y síntomas autorreportados como señal temprana" }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:group-antraciclinas",
+      "request": {
+        "method": "PUT",
+        "url": "Group?identifier=https://api.epa-bienestar.com.ar/fhir/CodeSystem/cohort|antraciclinas"
+      },
+      "resource": {
+        "resourceType": "Group",
+        "identifier": [
+          { "system": "https://api.epa-bienestar.com.ar/fhir/CodeSystem/cohort", "value": "antraciclinas" }
+        ],
+        "type": "person",
+        "actual": false,
+        "name": "Expuestos a antraciclinas",
+        "description": "Pacientes con al menos un MedicationStatement de familia ATC L01DB. Es la exposición de mayor riesgo cardiotóxico documentado y el denominador natural de los análisis de CTRCD.",
+        "characteristic": [
+          {
+            "code": { "coding": [{ "system": "http://www.whocc.no/atc", "code": "L01DB", "display": "Antraciclinas" }] },
+            "valueBoolean": true,
+            "exclude": false
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:group-anti-her2",
+      "request": {
+        "method": "PUT",
+        "url": "Group?identifier=https://api.epa-bienestar.com.ar/fhir/CodeSystem/cohort|anti-her2"
+      },
+      "resource": {
+        "resourceType": "Group",
+        "identifier": [
+          { "system": "https://api.epa-bienestar.com.ar/fhir/CodeSystem/cohort", "value": "anti-her2" }
+        ],
+        "type": "person",
+        "actual": false,
+        "name": "Expuestos a anticuerpos monoclonales (anti-HER2)",
+        "description": "Pacientes con MedicationStatement de familia ATC L01FD. La cardiotoxicidad por anti-HER2 suele ser reversible, a diferencia de la de antraciclinas: conviene analizarlos por separado.",
+        "characteristic": [
+          {
+            "code": { "coding": [{ "system": "http://www.whocc.no/atc", "code": "L01FD", "display": "Anticuerpos monoclonales" }] },
+            "valueBoolean": true,
+            "exclude": false
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:group-fevi-seriada",
+      "request": {
+        "method": "PUT",
+        "url": "Group?identifier=https://api.epa-bienestar.com.ar/fhir/CodeSystem/cohort|fevi-seriada"
+      },
+      "resource": {
+        "resourceType": "Group",
+        "identifier": [
+          { "system": "https://api.epa-bienestar.com.ar/fhir/CodeSystem/cohort", "value": "fevi-seriada" }
+        ],
+        "type": "person",
+        "actual": false,
+        "name": "Con FEVI seriada (≥2 mediciones)",
+        "description": "Pacientes con al menos dos Observation de LOINC 8806-2 en fechas distintas. Es el denominador VÁLIDO para cualquier análisis de caída de FEVI: quien tiene una sola medición no puede clasificarse como 'sin caída', es dato faltante.",
+        "characteristic": [
+          {
+            "code": { "coding": [{ "system": "http://loinc.org", "code": "8806-2", "display": "Left ventricular Ejection fraction" }] },
+            "valueBoolean": true,
+            "exclude": false
+          }
+        ]
+      }
+    }
+  ]
+}
