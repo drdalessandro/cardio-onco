@@ -112,7 +112,11 @@ export const OBSERVATION_CODES = {
   qtcInterval: { code: '8636-3', display: 'QTc interval', unit: 'ms' },
 
   // Laboratorio
+  // Troponina ultrasensible: I y T son ENSAYOS DISTINTOS y sus valores no se
+  // comparan entre sí. La planilla no dice cuál usa el laboratorio, así que el
+  // migrador asume I; si el laboratorio informa T, hay que mapear a `troponinHsT`.
   troponinHs: { code: '89579-7', display: 'Troponin I.cardiac (hs)', unit: 'ng/L' },
+  troponinHsT: { code: '67151-1', display: 'Troponin T.cardiac (hs)', unit: 'ng/L' },
   ntProBNP: { code: '33762-6', display: 'NT-proBNP', unit: 'pg/mL' },
   creatinine: { code: '2160-0', display: 'Creatinine', unit: 'mg/dL' },
   hemoglobin: { code: '718-7', display: 'Hemoglobin', unit: 'g/dL' },
