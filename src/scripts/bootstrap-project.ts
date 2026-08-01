@@ -55,6 +55,7 @@ const STEPS: Step[] = [
   { group: 'seeds', file: 'data/core/medicamentos-argentina.json', label: 'Vademécum ANMAT' },
   { group: 'seeds', file: 'data/core/encounter-types.json', label: 'Tipos de encuentro' },
   { group: 'seeds', file: 'data/core/encounter-note-questionnaires.json', label: 'Cuestionarios de evolución' },
+  { group: 'seeds', file: 'data/core/questionnaire-checkin-cardio-onco.json', label: 'Check-in del paciente (captura autorreportada)' },
   {
     group: 'bots',
     file: 'data/core/example-bots.json',
