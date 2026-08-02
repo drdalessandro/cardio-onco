@@ -183,6 +183,38 @@ También probar `GET /fhir/R4/Patient` como A: debe devolver **sólo A**.
 
 ---
 
+## Paso 6a — Ensayo con los CSV de ejemplo (recomendado)
+
+Antes de tocar pacientes reales conviene ejercitar **todo el pipeline** contra el
+servidor, con los CSV de-identificados que trae el repo:
+
+```bash
+npx tsx src/cardiotox-mapping/migration/migrate.ts data/example/cardiotox-sample.csv \
+  --echo data/example/cardiotox-eco-control-sample.csv \
+  --ecg data/example/cardiotox-ecg-sample.csv \
+  --frcv data/example/cardiotox-frcv-sample.csv \
+  --include-orphans --demo --execute
+```
+
+Son 2 pacientes y ~107 recursos. `--demo` marca **todo** con
+`meta.tag = demo-data`, así se borra de un tirón después:
+
+```
+Patient?_tag=<sistema>|demo-data
+```
+
+Qué mirar en Medplum (los DNI son `11222333` y `22333444`, obviamente falsos):
+
+- [ ] La **serie de FEVI** del primero: `60 → 52 → 45` en tres fechas distintas
+- [ ] `Condition` de valvulopatía con `severity`
+- [ ] `MedicationStatement` con ATC `L01DB` (antraciclinas) y `A10BK` (gliflozinas)
+- [ ] Si ya desplegaste los bots: `RiskAssessment` con `risk-source = computed`
+- [ ] **Correr el comando otra vez**: los conteos no cambian
+
+Cuando termine, borrá los datos de prueba antes de seguir con los reales.
+
+---
+
 ## Paso 6 — Migración de prueba ⚠️ *primeros datos reales*
 
 ```bash
