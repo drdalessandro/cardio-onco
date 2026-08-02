@@ -7,8 +7,22 @@ import botLayer from '@medplum/bot-layer/package.json' with { type: 'json' };
 import esbuild from 'esbuild';
 import fastGlob from 'fast-glob';
 
-// Find all TypeScript files in your source directory
-const entryPoints = fastGlob.sync('./src/**/*.ts').filter((file) => !file.endsWith('test.ts'));
+// Sólo los BOTS se empaquetan, no todo `src/`.
+//
+// El glob original (`./src/**/*.ts`) metía en el bundle los CLIs (migrate,
+// bootstrap, el servidor MCP) y hasta `src/config.ts` del front-end. Eso rompe
+// de dos formas:
+//   · el servidor MCP arrastra el SDK, que depende de `ajv`, y esbuild no puede
+//     resolverlo en formato cjs → el build entero falla;
+//   · `config.ts` y `careplan-mapping/deploy.ts` usan `import.meta`, que no
+//     existe en cjs → warnings y código que quedaría vacío.
+//
+// Convención: un bot vive en `src/bots/` o su archivo termina en `-bot.ts`.
+// Si se agrega un bot fuera de eso, `deploy-bots.ts` falla al no encontrar su
+// `dist/…js`, así que el error salta enseguida.
+const entryPoints = fastGlob
+  .sync(['./src/bots/**/*.ts', './src/**/*-bot.ts'])
+  .filter((file) => !file.endsWith('test.ts'));
 
 const botLayerDeps = Object.keys(botLayer.dependencies);
 
