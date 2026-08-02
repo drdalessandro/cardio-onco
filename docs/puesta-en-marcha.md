@@ -281,13 +281,28 @@ permisos restrictivos. Reiniciar Claude Desktop después de editar.
 
 ### Verificar antes de conectarlo
 
-Probar suelto primero:
-
 ```bash
-MEDPLUM_CLIENT_ID=… MEDPLUM_CLIENT_SECRET=… npm run research:mcp
+npm run research:check
 ```
 
-Debe imprimir `[research-mcp] conectado … (sólo lectura)`.
+Prueba las cinco causas posibles **en orden** y se detiene en la primera que
+falla, diciendo cómo resolverla:
+
+1. **Credenciales** presentes (y avisa si estás usando las de administración).
+2. **Red** — que se llegue al servidor. Un `403` acá casi siempre es un **proxy**
+   bloqueando el host, no el servidor: es lo que pasa en Claude Code en la web.
+3. **Autenticación** — que el servidor las acepte, e imprime el Project destino.
+4. **Datos** — cuántos `Patient`, `Observation` de FEVI, `Group` y
+   `ResearchStudy` hay. Sin datos migrados el agente no tiene qué consultar.
+5. **Seudonimización** — que los `Patient` lleguen **sin nombre**. Si traen
+   `name`, estás usando un client sin la política de investigación y el agente
+   vería PHI.
+
+Cuando termina con `━━━ Todo listo ━━━`, recién ahí:
+
+```bash
+npm run research:mcp     # debe imprimir: [research-mcp] conectado … (sólo lectura)
+```
 
 ### La primera pregunta real
 
