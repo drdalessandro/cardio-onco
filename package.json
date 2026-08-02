@@ -10,6 +10,7 @@
     "upload:core": "tsx src/scripts/bootstrap-project.ts --seeds --execute",
     "upload:example": "tsx src/scripts/bootstrap-project.ts --example --execute",
     "deploy:bots": "tsx src/scripts/bootstrap-project.ts --bots --execute",
+    "check:policies": "tsx src/scripts/check-access-policies.ts",
     "research:mcp": "tsx src/research/mcp-server.ts",
     "research:check": "tsx src/research/check.ts",
     "clean": "rimraf dist",

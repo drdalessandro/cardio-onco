@@ -140,6 +140,26 @@ En la consola de administración de Medplum:
 > El registro de pacientes es **abierto**. Sin la política como default, un
 > paciente que se registra entra **sin restricciones**.
 
+### Verificar la configuración
+
+```bash
+npm run check:policies      # con el client de ADMINISTRACIÓN
+```
+
+Audita cuatro cosas que no se pueden ver mirando el repo:
+
+1. Que las **tres políticas** estén instaladas.
+2. Que `cardio-onco-patient` sea la **default patient access policy** 🔒 — si no
+   lo es, cada paciente que se registra entra sin restricciones.
+3. **Quién tiene cada política**, y avisa si hay memberships sin política y sin
+   ser admin (acceso completo por omisión).
+4. **Deriva**: si alguien editó una política por consola y ya no coincide con
+   `data/core/access-policies.json`.
+
+> Requiere el client de administración a propósito: la política de investigación
+> **no** puede leer `AccessPolicy` ni `ProjectMembership`, para que un agente no
+> pueda leer ni modificar los permisos.
+
 ### Prueba de intrusión (no es opcional)
 
 1. Registrar dos pacientes de prueba, A y B.

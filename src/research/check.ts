@@ -121,6 +121,7 @@ async function main(): Promise<void> {
   }
   ok(`${pacientes} Patient`);
 
+  const pendientes: string[] = [];
   const fevi = await cuenta('Observation', { code: '8806-2' });
   const cohortes = await cuenta('Group');
   const estudios = await cuenta('ResearchStudy');
@@ -129,19 +130,44 @@ async function main(): Promise<void> {
   console.log(`  ${cohortes > 0 ? '✅' : '⚠️ '} ${cohortes} Group (cohortes)`);
   console.log(`  ${estudios > 0 ? '✅' : '⚠️ '} ${estudios} ResearchStudy`);
 
+  if (fevi === 0) {
+    pendientes.push('No hay ninguna FEVI cargada: falta la migración (pasos 6–7).');
+  }
   if (cohortes === 0 || estudios === 0) {
-    console.log('\n  ⚠️  Faltan las cohortes: corré `npm run upload:core` (paso 4).');
+    pendientes.push('Faltan las cohortes (Group/ResearchStudy): corré `npm run upload:core` (paso 4).');
+  }
+  if (pacientes < 10) {
+    pendientes.push(`Sólo ${pacientes} Patient: parece que todavía no se migró la planilla.`);
   }
 
   // ── 5. La política de investigación está activa ────────────────────────────
   console.log('\n5. Perfil de investigación (seudonimización)');
   const muestra = await medplum.searchResources('Patient', { _count: '1' } as never);
   const p = muestra[0];
-  if (p?.name?.length) {
-    console.log('  ⚠️  El Patient trae `name`: estás usando un client SIN la política');
-    console.log('      de investigación. El agente vería PHI. Usá cardio-onco-researcher.');
-  } else {
-    ok('los Patient llegan sin nombre (hiddenFields aplicado)');
+  if (p?.name?.length || p?.telecom?.length) {
+    // BLOQUEANTE, no advertencia: si el Patient llega con datos identificatorios,
+    // este client no tiene la política de investigación. Conectar el agente así
+    // le daría acceso a PHI — y, si es el client de administración, permiso de
+    // escritura sobre la historia clínica.
+    bad(
+      'los Patient llegan con datos identificatorios: NO es el perfil de investigación',
+      'Estás usando un ClientApplication sin `AccessPolicy = cardio-onco-researcher`\n' +
+        '(probablemente el de administración, que además puede ESCRIBIR).\n\n' +
+        'Creá un ClientApplication aparte, asignale la AccessPolicy\n' +
+        '`cardio-onco-researcher` y usá esas credenciales:\n\n' +
+        '  export MEDPLUM_RESEARCH_CLIENT_ID=…\n' +
+        '  export MEDPLUM_RESEARCH_CLIENT_SECRET=…\n\n' +
+        'Ver docs/access-policies.md y el paso 1 de docs/puesta-en-marcha.md.'
+    );
+  }
+  ok('los Patient llegan sin datos identificatorios (hiddenFields aplicado)');
+
+  // Sólo se declara "listo" si no quedó nada pendiente.
+  if (pendientes.length > 0) {
+    console.log('\n━━━ Falta completar ━━━');
+    pendientes.forEach((x) => console.log(`  · ${x}`));
+    console.log('\nEl MCP va a conectar igual, pero el agente tendría poco o nada que consultar.');
+    process.exit(1);
   }
 
   console.log('\n━━━ Todo listo ━━━');
