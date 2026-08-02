@@ -143,9 +143,12 @@ async function main(): Promise<void> {
     console.log('  ⚠️  No se pudo leer el Project completo: este client no es admin DEL');
     console.log('      Project, así que no se puede confirmar automáticamente.');
     console.log('');
-    console.log('      → Verificalo a ojo (es una mirada):');
-    console.log('        https://app.medplum.com.ar/admin/project');
-    console.log('        Debe decir Default Patient Access Policy = cardio-onco-patient');
+    console.log('      → Verificalo en el JSON del recurso Project:');
+    console.log(`        https://app.medplum.com.ar/Project/${project?.id ?? '<id>'}  (pestaña JSON)`);
+    console.log('        Debe tener "defaultPatientAccessPolicy".');
+    console.log('');
+    console.log('      NB: esto bloquea DESPLEGAR la app del paciente, no migrar. Sin');
+    console.log('      pacientes con credenciales ni app desplegada, no hay riesgo activo.');
     console.log('');
     console.log('      NO conviene marcar este client como admin sólo para que pase el');
     console.log('      chequeo: es el mismo client que corre la migración, y darle');

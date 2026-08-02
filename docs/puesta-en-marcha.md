@@ -130,7 +130,17 @@ cuestionarios → check-in → estudio y cohortes → bots y subscriptions.
 
 ---
 
-## Paso 5 — Activar la política del paciente 🔒 *el control crítico*
+## Paso 5 — Política del paciente 🔒
+
+> **Qué bloquea y qué no.** Este paso es requisito para **abrir la app del
+> paciente** (`programas`), no para migrar. Mientras no exista un paciente con
+> credenciales ni la app desplegada, nadie puede explotar la falta de política:
+> los datos migrados sólo los ve el equipo clínico, que debe verlos. Se puede
+> avanzar con los pasos 6 y 7 y cerrar esto antes del despliegue.
+>
+> Lo que **sí** conviene tener listo antes de migrar son los **bots**
+> (`npm run build:bots` y volver a correr el bootstrap): sin ellos el check-in
+> no se convierte en `Observation` y los scores no se recalculan.
 
 En la consola de administración de Medplum:
 
@@ -166,8 +176,8 @@ Audita cuatro cosas que no se pueden ver mirando el repo:
 2. Cargar una `Observation` para B y anotar su id.
 3. Con la sesión de **A**, pedir `GET /fhir/R4/Observation/<id-de-B>`.
 
-**Debe devolver 403.** Si devuelve el recurso, **parar acá**: la política no
-está activa y cargar pacientes reales expondría datos entre ellos.
+**Debe devolver 403.** Si devuelve el recurso, **no desplegar la app del
+paciente**: con el registro abierto, cualquiera podría leer datos ajenos.
 
 También probar `GET /fhir/R4/Patient` como A: debe devolver **sólo A**.
 
