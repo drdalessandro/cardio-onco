@@ -156,6 +156,25 @@ describe('joinWorkbook — huérfanos (DNI que no está en la spine)', () => {
     expect(pat.identifier[0]).toMatchObject({ system: SYSTEMS.dniArgentina, value: '99999999' });
     expect(entriesOf(orphan, 'Observation').length).toBeGreaterThan(0);
   });
+
+  it('el huérfano queda marcado como incompleto (buscable y excluible)', () => {
+    const r = joinWorkbook({ sheets: wb, includeOrphans: true });
+    const pat = entriesOf(r.bundles[1], 'Patient')[0].resource;
+    expect(pat.meta?.tag?.[0]?.code).toBe('incomplete-baseline');
+  });
+
+  it('el huérfano NO tiene sexo ni nacimiento — por eso no se le calculan scores', () => {
+    const r = joinWorkbook({ sheets: wb, includeOrphans: true });
+    const pat = entriesOf(r.bundles[1], 'Patient')[0].resource;
+    expect(pat.gender).toBeUndefined();
+    expect(pat.birthDate).toBeUndefined();
+  });
+
+  it('el paciente con registro basal NO lleva el tag', () => {
+    const r = joinWorkbook({ sheets: wb, includeOrphans: true });
+    const pat = entriesOf(r.bundles[0], 'Patient')[0].resource;
+    expect(pat.meta?.tag).toBeUndefined();
+  });
 });
 
 describe('joinWorkbook — sin hojas secundarias sigue funcionando', () => {

@@ -88,10 +88,30 @@ function rowDni(row: Record<string, string>): string | undefined {
   return dniValue(row['DNI']);
 }
 
-/** `Patient` mínimo (sólo DNI) para huérfanos, cuando se habilita. */
+/**
+ * `Patient` mínimo (sólo DNI) para huérfanos, cuando se habilita.
+ *
+ * Se marca con un `meta.tag` a propósito: estos pacientes existen únicamente en
+ * las hojas seriadas, así que **no tienen sexo ni fecha de nacimiento**. Eso
+ * tiene dos consecuencias que hay que poder ver:
+ *   · el motor de scores los omite (todas las ecuaciones son sexo-específicas);
+ *   · en investigación hay que poder excluirlos de los análisis que dependan de
+ *     la demografía, en vez de que se mezclen sin distinción.
+ *
+ * El tag los hace buscables: `Patient?_tag=…|incomplete-baseline`.
+ */
 function orphanPatient(dni: string): BundleEntry {
   const patient: Patient = {
     resourceType: 'Patient',
+    meta: {
+      tag: [
+        {
+          system: `${SYSTEMS.cardiotoxRecordId}`,
+          code: 'incomplete-baseline',
+          display: 'Sin registro basal en Cardiotox — migrado desde hojas seriadas',
+        },
+      ],
+    },
     identifier: [{ system: SYSTEMS.dniArgentina, value: dni, use: 'official' }],
   };
   return {

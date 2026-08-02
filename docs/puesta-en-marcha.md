@@ -6,24 +6,42 @@ reales del Marie Curie.
 **Leer esto antes de empezar:** los pasos 0 a 3 no escriben nada. El primer
 paso que toca el servidor es el 4, y el primero que toca pacientes reales es el
 6. Cada paso tiene una verificación: si no da lo esperado, parar ahí — todos los
-pasos son idempotentes y se pueden repetir, pero corregir después de cargar 327
+pasos son idempotentes y se pueden repetir, pero corregir después de cargar 352
 pacientes cuesta mucho más que corregir antes.
 
 ---
 
-## Paso 0 — Antes de tocar nada
+## Paso 0 — Antes de tocar nada ✅ *resuelto*
 
-Tres cosas que no dependen del código y que bloquean todo lo demás:
+- [x] **Residencia de datos** — São Paulo aceptado.
+- [x] **Códigos `(verificar)`** — confirmados.
+- [x] **DNIs huérfanos** — entran con `--include-orphans`.
 
-- [ ] **Residencia de datos.** El RDS está en São Paulo y los pacientes son de
-      un hospital público argentino. Confirmar con el Marie Curie / el Dr.
-      Quiroga que la institución acepta que los datos residan en Brasil. Si no,
-      cambia la arquitectura (región AR u on-premise) y no tiene sentido migrar.
-- [ ] **Códigos `(verificar)`.** Siglas valvulares (`IT`→I36.1, `IM`→I34.0,
-      `IAo`→I35.1, `IP`→I37.1) y SNOMED de síntomas y hallazgos. Van a quedar en
-      ~1.400 `Condition`. Que los confirme un terminólogo.
-- [ ] **Los 25 DNIs huérfanos y las 71 filas sin DNI.** Decidir si son errores
-      de carga a corregir en la planilla, o si entran con `--include-orphans`.
+### Qué implica incluir los huérfanos
+
+Son **25 pacientes que sólo existen en las hojas seriadas**, y aportan datos
+clínicos reales: 162 `Observation`, 26 `Condition`, 13 `RiskAssessment`. La
+migración pasa de 327 a **352 pacientes** y de 15.025 a **15.264 recursos**.
+
+Pero entran **sin sexo y sin fecha de nacimiento**, y eso tiene dos
+consecuencias que el sistema hace explícitas:
+
+1. **No se les calcula ningún score.** Todas las ecuaciones (PREVENT,
+   Framingham, SCORE2, Globorisk) son sexo-específicas. El motor los omite y lo
+   registra en el log, en vez de asumir un sexo y devolver un riesgo inventado.
+2. **Quedan marcados** con `meta.tag = incomplete-baseline`, así que son
+   buscables y excluibles:
+
+   ```
+   Patient?_tag=…/cardiotox-record-id|incomplete-baseline
+   ```
+
+   En cualquier análisis que dependa de la demografía hay que excluirlos —
+   no que se mezclen sin distinción.
+
+> Las **71 filas sin DNI** de Cardiotox se omiten igual: sin clave de join no
+> hay a quién colgarles los datos. Si son pacientes reales, hay que corregir el
+> DNI en la planilla y re-migrar (es idempotente).
 
 ---
 
@@ -79,11 +97,13 @@ clave de join.
 
 ```bash
 npx tsx src/cardiotox-mapping/migration/migrate.ts cardiotox.csv \
-  --echo eco.csv --ecg ecg.csv --qt qt.csv --frcv frcv.csv --inspect
+  --echo eco.csv --ecg ecg.csv --qt qt.csv --frcv frcv.csv \
+  --include-orphans --inspect
 ```
 
 **Verificar:**
-- `Pacientes: 327` (o el número que corresponda al export del día)
+- `Pacientes: 352` con `--include-orphans` (327 con registro basal + 25
+  huérfanos), o el número que corresponda al export del día
 - La lista **SIN MAPEAR** sólo debería tener `ultimo control`, `PROXIMO CONTROL`
   y `Uso`. Cualquier columna nueva ahí es un alias que falta agregar — **no un
   dato para descartar**.
@@ -138,7 +158,7 @@ También probar `GET /fhir/R4/Patient` como A: debe devolver **sólo A**.
 ```bash
 npx tsx src/cardiotox-mapping/migration/migrate.ts cardiotox.csv \
   --echo eco.csv --ecg ecg.csv --qt qt.csv --frcv frcv.csv \
-  --limit 5 --execute
+  --include-orphans --limit 5 --execute
 ```
 
 **Verificar en Medplum, sobre esos 5 pacientes:**
@@ -149,6 +169,8 @@ npx tsx src/cardiotox-mapping/migration/migrate.ts cardiotox.csv \
 - [ ] `Condition` con ICD-10 **y** SNOMED
 - [ ] `MedicationStatement` con ATC (`L01DB` en quien recibió antraciclinas)
 - [ ] `RiskAssessment` con `risk-source = manual` en los scores cargados a mano
+- [ ] Si cae algún huérfano en los primeros 5: sin `gender` ni `birthDate`, con
+      `meta.tag = incomplete-baseline` y **sin** `RiskAssessment` calculado
 - [ ] **Correr el comando de nuevo**: los conteos **no deben cambiar**. Es
       idempotente (PUT por identifier); si algo se duplica, parar.
 
@@ -161,16 +183,16 @@ actualiza, no duplica.
 
 ```bash
 npx tsx src/cardiotox-mapping/migration/migrate.ts cardiotox.csv \
-  --echo eco.csv --ecg ecg.csv --qt qt.csv --frcv frcv.csv --execute
+  --echo eco.csv --ecg ecg.csv --qt qt.csv --frcv frcv.csv \
+  --include-orphans --execute
 ```
 
-Esperado: **327 pacientes · ~15.025 recursos**, progreso cada 25.
+Esperado: **352 pacientes · ~15.264 recursos**, progreso cada 25.
 
-**Verificar:** `✓ 327 OK · ✗ 0 con error`. Si hay errores, los lista por
-paciente — se corrigen y se re-corre sólo eso.
-
-> Los DNIs huérfanos quedan afuera salvo que agregues `--include-orphans`
-> (decisión del paso 0).
+**Verificar:**
+- `✓ 352 OK · ✗ 0 con error`. Si hay errores, los lista por paciente — se
+  corrigen y se re-corre sólo eso.
+- `Patient?_tag=…|incomplete-baseline` debe devolver **25**.
 
 ---
 
@@ -229,6 +251,10 @@ Antes de creerle nada, verificar contra algo conocido:
   un rango fisiológico (~60%). Si da 12 o 200, hay un problema de unidades.
 - «Trayectoria de FEVI del paciente `<id>`» → contrastar con la planilla
   original de ese paciente.
+
+> **Al analizar, acordate de los 25 huérfanos.** Tienen FEVI seriada (sirven
+> para incidencia de CTRCD) pero no tienen edad ni sexo: cualquier análisis
+> ajustado por demografía debe excluirlos con el tag `incomplete-baseline`.
 
 ---
 

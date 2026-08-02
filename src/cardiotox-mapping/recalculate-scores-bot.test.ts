@@ -62,3 +62,29 @@ describe('buildScoresForInputs', () => {
     expect(ras.every((r) => r.basis?.[0]?.reference === 'Observation/chol-1')).toBe(true);
   });
 });
+
+describe('Sin sexo registrado no se calcula ningún score', () => {
+  // Los 25 pacientes que entran con --include-orphans llegan sólo con DNI:
+  // sin sexo. Todas las ecuaciones son sexo-específicas, así que asumir uno
+  // produce un riesgo plausible e inventado.
+  const inputsCompletos = {
+    age: 60,
+    totalChol: 200, hdl: 50, sbp: 130, egfr: 90, bmi: 27,
+    smoking: false, diabetes: false, antihypertensiveTx: false, statinTx: false,
+  };
+
+  it('con sexo se calculan scores', () => {
+    const out = buildScoresForInputs({ ...inputsCompletos, sex: 'female' }, { reference: 'Patient/1' });
+    expect(out.length).toBeGreaterThan(0);
+  });
+
+  it('sin sexo NO se calcula ninguno (no se asume varón)', () => {
+    const out = buildScoresForInputs({ ...inputsCompletos, sex: undefined }, { reference: 'Patient/1' });
+    expect(out).toEqual([]);
+  });
+
+  it('sin edad tampoco', () => {
+    const out = buildScoresForInputs({ ...inputsCompletos, age: undefined, sex: 'female' }, { reference: 'Patient/1' });
+    expect(out).toEqual([]);
+  });
+});
