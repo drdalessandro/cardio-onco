@@ -64,7 +64,21 @@ async function main(): Promise<void> {
 
   const medplum = new MedplumClient({ baseUrl });
   await medplum.startClientLogin(clientId, clientSecret);
-  const project = medplum.getProject();
+
+  // `getProject()` devuelve el Project que vino en el login, que puede ser una
+  // representación PARCIAL: si `defaultPatientAccessPolicy` no viene ahí, no
+  // significa que no esté configurada. Se lee el recurso para estar seguros.
+  const desdeLogin = medplum.getProject();
+  let project = desdeLogin;
+  let proyectoCompleto = false;
+  if (desdeLogin?.id) {
+    try {
+      project = await medplum.readResource('Project', desdeLogin.id);
+      proyectoCompleto = true;
+    } catch {
+      // Sin permiso para leer el Project: se sigue con lo del login, avisando.
+    }
+  }
 
   console.log('━━━ Auditoría de AccessPolicy ━━━');
   console.log(`Servidor: ${baseUrl}`);
@@ -88,14 +102,28 @@ async function main(): Promise<void> {
   }
   const otras = instaladas.filter((p) => !ESPERADAS.includes(p.name ?? ''));
   if (otras.length) {
-    console.log(`  ℹ️  Además hay ${otras.length} política(s) ajenas al proyecto: ${otras.map((p) => p.name).join(', ')}`);
+    // Medplum crea sus propias políticas por defecto al armar un Project: que
+    // estén no es un problema, sólo hay que saber cuál manda (ver punto 2).
+    const propias = otras.filter((p) => /^Default .* Access Policy$/.test(p.name ?? ''));
+    if (propias.length) {
+      console.log(`  ℹ️  ${propias.length} política(s) que trae Medplum por defecto (normal): ${propias.map((p) => p.name).join(', ')}`);
+    }
+    const ajenas = otras.filter((p) => !propias.includes(p));
+    if (ajenas.length) {
+      console.log(`  ⚠️  ${ajenas.length} política(s) ajenas al proyecto: ${ajenas.map((p) => p.name).join(', ')}`);
+    }
   }
 
   // ── 2. Default patient access policy ── EL CONTROL CRÍTICO ─────────────────
   console.log('\n2. Default patient access policy  🔒');
   const def = project?.defaultPatientAccessPolicy;
   const esperada = porNombre.get('cardio-onco-patient');
-  if (!def?.reference) {
+  if (!def?.reference && !proyectoCompleto) {
+    console.log('  ⚠️  No se pudo leer el Project completo, así que no se puede confirmar');
+    console.log('      si la default patient access policy está configurada.');
+    console.log('      Verificalo a mano: Medplum admin → Project → Default Patient Access Policy.');
+    problemas++;
+  } else if (!def?.reference) {
     console.log('  ❌ El Project NO tiene default patient access policy.');
     console.log('     Con el registro abierto, cada paciente que se registra entra SIN');
     console.log('     restricciones y puede leer datos de otros pacientes.');
@@ -111,7 +139,19 @@ async function main(): Promise<void> {
 
   // ── 3. Quién tiene qué ─────────────────────────────────────────────────────
   console.log('\n3. Asignaciones (ProjectMembership)');
-  const memberships = (await medplum.searchResources('ProjectMembership', { _count: '200' } as never)) as ProjectMembership[];
+  let memberships: ProjectMembership[] = [];
+  let membershipsLegibles = true;
+  try {
+    memberships = (await medplum.searchResources('ProjectMembership', { _count: '200' } as never)) as ProjectMembership[];
+  } catch (e) {
+    // Leer ProjectMembership exige ser administrador DEL PROJECT, no alcanza
+    // con un ClientApplication común. No es un problema de configuración de las
+    // políticas, así que se informa y se sigue con el resto de la auditoría.
+    membershipsLegibles = false;
+    console.log(`  ⚠️  No se pudo leer ProjectMembership (${(e as Error).message}).`);
+    console.log('      El ClientApplication no es administrador del Project. Verificá las');
+    console.log('      asignaciones a mano en: Medplum admin → Project → Users.');
+  }
   const porPolitica = new Map<string, number>();
   const sinPolitica: string[] = [];
 
@@ -126,14 +166,16 @@ async function main(): Promise<void> {
     }
   }
 
-  if (porPolitica.size === 0) {
+  if (membershipsLegibles && porPolitica.size === 0) {
     console.log('  ⚠️  Ninguna membership tiene AccessPolicy asignada.');
   }
   for (const [nombre, n] of [...porPolitica].sort()) {
     console.log(`  · ${nombre}: ${n} membership(s)`);
   }
-  const admins = memberships.filter((m) => m.admin).length;
-  console.log(`  · administradores del Project: ${admins}`);
+  if (membershipsLegibles) {
+    const admins = memberships.filter((m) => m.admin).length;
+    console.log(`  · administradores del Project: ${admins}`);
+  }
 
   if (sinPolitica.length) {
     console.log(`\n  ⚠️  ${sinPolitica.length} membership(s) sin política y sin ser admin —`);
