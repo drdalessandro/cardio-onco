@@ -26,6 +26,9 @@
  *   --include-orphans    Crea Patient mínimo para DNIs que sólo están en hojas
  *                        seriadas (por defecto se omiten con advertencia).
  *   --limit <N>          Procesa sólo los primeros N pacientes (smoke test).
+ *   --demo               Marca TODO lo cargado con `meta.tag = demo-data`, para
+ *                        poder borrarlo después de un tirón. Usalo cuando cargues
+ *                        los CSV de ejemplo contra un servidor real.
  *   --tab                Los archivos son TSV.
  *   --out <ruta.json>    Destino del dry-run.
  *   --execute            Sube a Medplum (requiere credenciales).
@@ -41,6 +44,27 @@ import { dirname } from 'path';
 import { parseCsv, rowsToObjects } from './parsers';
 import { joinWorkbook } from './workbook';
 import type { SheetName, Workbook } from './workbook';
+import { MIG_SYS } from './entry-builders';
+
+/** Etiqueta de datos de prueba: hace que la limpieza sea una sola búsqueda. */
+const DEMO_TAG = { system: MIG_SYS, code: 'demo-data', display: 'Dato de prueba — NO es un paciente real' };
+
+/**
+ * Marca todos los recursos como datos de prueba.
+ *
+ * Cargar los CSV de ejemplo contra el servidor real es la forma sana de probar
+ * el pipeline completo, pero deja basura en un Project de producción. Con la
+ * etiqueta, borrarla después es una búsqueda por `_tag`.
+ */
+function marcarComoDemo(bundles: Bundle[]): void {
+  for (const b of bundles) {
+    for (const e of b.entry ?? []) {
+      if (!e.resource) continue;
+      const meta = (e.resource.meta ??= {});
+      meta.tag = [...(meta.tag ?? []), DEMO_TAG];
+    }
+  }
+}
 
 const DEFAULT_OUT = 'data/example/cardiotox-migration-dryrun.json';
 
@@ -136,6 +160,12 @@ function main(): Promise<void> {
   const bundles = Number.isFinite(limit) && limit > 0 ? result.bundles.slice(0, limit) : result.bundles;
   if (bundles.length !== result.bundles.length) {
     console.log(`\n[limit] Se procesan los primeros ${bundles.length} de ${result.bundles.length} pacientes.`);
+  }
+
+  if (args.includes('--demo')) {
+    marcarComoDemo(bundles);
+    console.log(`\n[demo] Todo se marca con _tag=${DEMO_TAG.code}. Para borrarlo después:`);
+    console.log(`  Patient?_tag=${encodeURIComponent(MIG_SYS)}|${DEMO_TAG.code}  (y lo mismo por cada tipo)`);
   }
 
   if (!args.includes('--execute')) {
