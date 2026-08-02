@@ -11,6 +11,7 @@
     "upload:example": "tsx src/scripts/bootstrap-project.ts --example --execute",
     "deploy:bots": "tsx src/scripts/bootstrap-project.ts --bots --execute",
     "research:mcp": "tsx src/research/mcp-server.ts",
+    "research:check": "tsx src/research/check.ts",
     "clean": "rimraf dist",
     "dev": "vite",
     "lint": "eslint src/",
