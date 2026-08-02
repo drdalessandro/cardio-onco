@@ -140,9 +140,17 @@ async function main(): Promise<void> {
   const def = project?.defaultPatientAccessPolicy;
   const esperada = porNombre.get('cardio-onco-patient');
   if (!def?.reference && !proyectoCompleto) {
-    console.log('  ⚠️  No se pudo leer el Project completo, así que no se puede confirmar');
-    console.log('      si la default patient access policy está configurada.');
-    console.log('      Verificalo a mano: Medplum admin → Project → Default Patient Access Policy.');
+    console.log('  ⚠️  No se pudo leer el Project completo: este client no es admin DEL');
+    console.log('      Project, así que no se puede confirmar automáticamente.');
+    console.log('');
+    console.log('      → Verificalo a ojo (es una mirada):');
+    console.log('        https://app.medplum.com.ar/admin/project');
+    console.log('        Debe decir Default Patient Access Policy = cardio-onco-patient');
+    console.log('');
+    console.log('      NO conviene marcar este client como admin sólo para que pase el');
+    console.log('      chequeo: es el mismo client que corre la migración, y darle');
+    console.log('      privilegios de administración del Project amplía lo que puede');
+    console.log('      hacer si esas credenciales se filtran. Mejor mirarlo a mano.');
     problemas++;
   } else if (!def?.reference) {
     console.log('  ❌ El Project NO tiene default patient access policy.');
@@ -170,8 +178,9 @@ async function main(): Promise<void> {
     // políticas, así que se informa y se sigue con el resto de la auditoría.
     membershipsLegibles = false;
     console.log(`  ⚠️  No se pudo leer ProjectMembership (${(e as Error).message}).`);
-    console.log('      El ClientApplication no es administrador del Project. Verificá las');
-    console.log('      asignaciones a mano en: Medplum admin → Project → Users.');
+    console.log('      Mismo motivo que el punto 2: hace falta ser admin del Project.');
+    console.log('      → A ojo: https://app.medplum.com.ar/admin/users');
+    console.log('               https://app.medplum.com.ar/admin/clients');
   }
   const porPolitica = new Map<string, number>();
   const sinPolitica: string[] = [];
