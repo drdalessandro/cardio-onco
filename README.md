@@ -198,9 +198,11 @@ App runs at **http://localhost:3000** 🎉
 
 ### 5. Migrate existing patient data (optional)
 
-If you are migrating from the Cardiotox spreadsheet, see
-[`docs/fhir-mapping-cardiotox.md`](docs/fhir-mapping-cardiotox.md). Always start with
-`--inspect`, then a small `--limit` run, before the full migration.
+If you are migrating from the Cardiotox spreadsheet, follow the step-by-step runbook in
+[`docs/puesta-en-marcha.md`](docs/puesta-en-marcha.md) — it covers the full sequence
+(bootstrap → access-policy check → trial migration → full migration → research agent)
+with a verification at each step. Mapping details are in
+[`docs/fhir-mapping-cardiotox.md`](docs/fhir-mapping-cardiotox.md).
 
 ---
 
