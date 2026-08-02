@@ -198,7 +198,65 @@ Esperado: **352 pacientes · ~15.264 recursos**, progreso cada 25.
 
 ## Paso 8 — El agente investigador
 
-Cargar el client de investigación en la config de Claude Code:
+### Dónde va la configuración
+
+El servidor MCP es un **proceso local** (transporte stdio): Claude lo *ejecuta*
+en la máquina donde corre. Eso define dónde configurarlo.
+
+| Dónde | Archivo | Sirve para este caso |
+|---|---|---|
+| **Claude Code (CLI, local)** | `.mcp.json` en la raíz del repo | ✅ **Recomendado** |
+| **Claude Desktop** | `claude_desktop_config.json` | ✅ Sí |
+| **Claude Code en la web** | — | ❌ No (ver abajo) |
+
+**Por qué la web no sirve acá.** Claude Code en la web corre en un contenedor
+remoto, y su política de red **no llega a `api.medplum.com.ar`** (verificado: el
+proxy rechaza la conexión). Aunque se configurara, el servidor MCP no podría
+consultar la base. Además habría que meter el secreto en un entorno remoto, que
+es justo lo que conviene evitar con datos de un hospital público.
+
+> Se puede habilitar el host en la política de red del entorno remoto si en
+> algún momento hace falta. Hoy, para consultar datos de pacientes reales, la
+> opción sana es **local**.
+
+### Opción A — Claude Code (recomendado)
+
+El repo ya trae **`.mcp.json`** configurado. No lleva secretos: los toma del
+entorno.
+
+```bash
+export MEDPLUM_RESEARCH_CLIENT_ID=…
+export MEDPLUM_RESEARCH_CLIENT_SECRET=…
+claude            # desde la raíz del repo
+```
+
+Al abrir el proyecto, Claude Code pide aprobar el servidor la primera vez.
+Verificar con `/mcp`: debe listar `cardio-onco-research` conectado.
+
+> Las variables se llaman `MEDPLUM_RESEARCH_*` a propósito, distintas de las
+> `MEDPLUM_CLIENT_*` del `.env`: esas son las de **administración** y tienen
+> permiso de escritura. El agente debe usar las de investigación.
+
+Si preferís no exportar variables, `claude mcp add` guarda la config con
+credenciales en `~/.claude.json` (fuera del repo):
+
+```bash
+claude mcp add cardio-onco-research \
+  --env MEDPLUM_BASE_URL=https://api.medplum.com.ar \
+  --env MEDPLUM_CLIENT_ID=… \
+  --env MEDPLUM_CLIENT_SECRET=… \
+  -- npx tsx src/research/mcp-server.ts
+```
+
+### Opción B — Claude Desktop
+
+Editar el archivo de configuración:
+
+| SO | Ruta |
+|---|---|
+| macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
+| Linux | `~/.config/Claude/claude_desktop_config.json` |
 
 ```json
 {
@@ -206,8 +264,9 @@ Cargar el client de investigación en la config de Claude Code:
     "cardio-onco-research": {
       "command": "npx",
       "args": ["tsx", "src/research/mcp-server.ts"],
-      "cwd": "/ruta/al/repo/cardio-onco",
+      "cwd": "/ruta/absoluta/al/repo/cardio-onco",
       "env": {
+        "MEDPLUM_BASE_URL": "https://api.medplum.com.ar",
         "MEDPLUM_CLIENT_ID": "<el de cardio-onco-research>",
         "MEDPLUM_CLIENT_SECRET": "…"
       }
@@ -215,6 +274,12 @@ Cargar el client de investigación en la config de Claude Code:
   }
 }
 ```
+
+Acá **`cwd` es obligatorio** (Claude Desktop no arranca dentro del repo) y el
+secreto queda en texto plano en ese archivo — asegurate de que el equipo tenga
+permisos restrictivos. Reiniciar Claude Desktop después de editar.
+
+### Verificar antes de conectarlo
 
 Probar suelto primero:
 
