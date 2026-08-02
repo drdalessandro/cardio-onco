@@ -88,7 +88,28 @@ async function main(): Promise<void> {
 
   // ── 1. ¿Están las tres? ────────────────────────────────────────────────────
   console.log('1. Políticas instaladas');
-  const instaladas = await medplum.searchResources('AccessPolicy', { _count: '100' } as never);
+  let instaladas: AccessPolicy[] = [];
+  try {
+    instaladas = await medplum.searchResources('AccessPolicy', { _count: '100' } as never);
+  } catch (e) {
+    console.log(`  ❌ No se pueden leer las AccessPolicy (${(e as Error).message}).`);
+    console.log('');
+    console.log('     Este client NO tiene permisos de administración. Las causas más');
+    console.log('     frecuentes, en orden:');
+    console.log('');
+    console.log('     1. Se le asignó una AccessPolicy restrictiva a su ProjectMembership.');
+    console.log('        Ojo con `cardio-onco-patient`: NO va en el ClientApplication.');
+    console.log('        Lo que hay que configurar es `Project.defaultPatientAccessPolicy`');
+    console.log('        (Medplum admin → Project → Details/Settings), que es otra cosa.');
+    console.log('        → Solución: dejar el Access Policy del client de administración');
+    console.log('          VACÍO, en Medplum admin → Clients.');
+    console.log('');
+    console.log('     2. MEDPLUM_CLIENT_ID del .env apunta a un client sin privilegios.');
+    console.log('');
+    console.log('     Si el bootstrap funciona pero esto no, es casi seguro el caso 1:');
+    console.log('     leer AccessPolicy exige más privilegio que escribir recursos.');
+    process.exit(1);
+  }
   const porNombre = new Map(instaladas.map((p) => [p.name ?? '', p]));
 
   for (const nombre of ESPERADAS) {
