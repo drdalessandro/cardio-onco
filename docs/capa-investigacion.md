@@ -113,23 +113,19 @@ de ética, no del código.
 lógica pura (`src/research/cohort.ts`) sí está testeada: 30 tests sobre
 estadística, detección de caída de FEVI y traducción de criterios a búsquedas.
 
-## Conectarlo a Claude Code
+## Conectarlo
 
-```json
-{
-  "mcpServers": {
-    "cardio-onco-research": {
-      "command": "npx",
-      "args": ["tsx", "src/research/mcp-server.ts"],
-      "cwd": "/ruta/al/repo/cardio-onco",
-      "env": {
-        "MEDPLUM_CLIENT_ID": "…",
-        "MEDPLUM_CLIENT_SECRET": "…"
-      }
-    }
-  }
-}
-```
+El servidor es un **proceso local** (stdio): Claude lo ejecuta en la máquina
+donde corre. Ver el paso 8 de [`puesta-en-marcha.md`](puesta-en-marcha.md) para
+el detalle.
 
-Usar el `ClientApplication` con `AccessPolicy = cardio-onco-researcher`. Con las
-credenciales del perfil clínico el agente vería PHI: **no lo hagas**.
+- **Claude Code** — el repo trae `.mcp.json` listo. Exportá
+  `MEDPLUM_RESEARCH_CLIENT_ID` y `MEDPLUM_RESEARCH_CLIENT_SECRET` y abrí
+  `claude` desde la raíz del repo.
+- **Claude Desktop** — `claude_desktop_config.json`, con `cwd` apuntando al repo.
+- **Claude Code en la web** — no sirve para este caso: corre en un contenedor
+  remoto cuya política de red no llega a `api.medplum.com.ar`.
+
+Usar siempre el `ClientApplication` con `AccessPolicy = cardio-onco-researcher`.
+Con las credenciales del perfil clínico el agente vería PHI: **no lo hagas**.
+`.mcp.json` está versionado a propósito **sin secretos** — los toma del entorno.

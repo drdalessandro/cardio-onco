@@ -41,7 +41,13 @@ const RISK_SOURCE_EXT = 'https://api.epa-bienestar.com.ar/fhir/StructureDefiniti
 
 export interface RawInputs {
   age?: number;
-  sex: 'female' | 'male';
+  /**
+   * Sexo biológico. **Opcional a propósito**: sin él no se calcula ningún score.
+   * Todas las ecuaciones (PREVENT, Framingham, SCORE2, Globorisk) tienen
+   * coeficientes distintos por sexo, así que asumir uno produce un riesgo
+   * plausible e inventado — el peor modo de fallo posible acá.
+   */
+  sex?: 'female' | 'male';
   totalChol?: number; // mg/dL
   hdl?: number; // mg/dL
   sbp?: number; // mmHg
@@ -75,6 +81,10 @@ export async function handler(medplum: MedplumClient, event: BotEvent<Observatio
   const inputs = await gatherInputs(medplum, patient);
   if (inputs.age === undefined) {
     console.log(`[recalc-scores] Paciente ${patientId} sin fecha de nacimiento; se omite.`);
+    return;
+  }
+  if (inputs.sex === undefined) {
+    console.log(`[recalc-scores] Paciente ${patientId} sin sexo registrado; se omite (los scores son sexo-específicos).`);
     return;
   }
 
@@ -121,16 +131,17 @@ export function buildScoresForInputs(
   basis: Reference[] = []
 ): RiskAssessment[] {
   const out: RiskAssessment[] = [];
-  if (inputs.age === undefined) {
-    return out;
+  if (inputs.age === undefined || inputs.sex === undefined) {
+    return out; // sin edad o sin sexo no hay score: no se asume ninguno
   }
   const age = inputs.age;
+  const sex = inputs.sex;
 
   if (has(inputs, 'totalChol', 'hdl', 'sbp', 'egfr', 'bmi')) {
     tryPush(out, () =>
       buildPreventRiskAssessment(
         computePrevent({
-          age, sex: inputs.sex, totalCholesterol: inputs.totalChol as number, hdl: inputs.hdl as number,
+          age, sex, totalCholesterol: inputs.totalChol as number, hdl: inputs.hdl as number,
           systolicBP: inputs.sbp as number, bpTreated: false, statin: false, diabetes: inputs.diabetes,
           smoking: inputs.smoking, egfr: inputs.egfr as number, bmi: inputs.bmi as number,
           hba1c: inputs.hba1c, uacr: inputs.uacr,
@@ -144,7 +155,7 @@ export function buildScoresForInputs(
     tryPush(out, () =>
       buildFraminghamRiskAssessment(
         computeFramingham({
-          age, sex: inputs.sex, totalCholesterol: inputs.totalChol as number, hdl: inputs.hdl as number,
+          age, sex, totalCholesterol: inputs.totalChol as number, hdl: inputs.hdl as number,
           systolicBP: inputs.sbp as number, bpTreated: false, smoking: inputs.smoking, diabetes: inputs.diabetes,
         }),
         subject, basis
@@ -153,7 +164,7 @@ export function buildScoresForInputs(
     tryPush(out, () =>
       buildScore2RiskAssessment(
         computeScore2({
-          age, sex: inputs.sex, smoking: inputs.smoking, systolicBP: inputs.sbp as number, diabetes: inputs.diabetes,
+          age, sex, smoking: inputs.smoking, systolicBP: inputs.sbp as number, diabetes: inputs.diabetes,
           totalCholesterol: mgDlToMmolChol(inputs.totalChol as number), hdl: mgDlToMmolChol(inputs.hdl as number),
         }),
         subject, basis
@@ -165,7 +176,7 @@ export function buildScoresForInputs(
     tryPush(out, () =>
       buildGloboriskRiskAssessment(
         computeGloborisk({
-          age, sex: inputs.sex, systolicBP: inputs.sbp as number,
+          age, sex, systolicBP: inputs.sbp as number,
           totalCholesterol: mgDlToMmolChol(inputs.totalChol as number), diabetes: inputs.diabetes, smoking: inputs.smoking,
         }),
         subject, basis
@@ -240,7 +251,8 @@ async function gatherInputs(medplum: MedplumClient, patient: Patient): Promise<R
 
   return {
     age: ageFromBirthDate(patient.birthDate),
-    sex: patient.gender === 'female' ? 'female' : 'male',
+    // Sin gender no se asume ninguno: `undefined` hace que se omitan los scores.
+    sex: patient.gender === 'female' ? 'female' : patient.gender === 'male' ? 'male' : undefined,
     totalChol: chol?.valueQuantity?.value,
     hdl: hdl?.valueQuantity?.value,
     sbp: sbpFromPanel ?? sbpDirect?.valueQuantity?.value,

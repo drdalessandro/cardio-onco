@@ -6,24 +6,42 @@ reales del Marie Curie.
 **Leer esto antes de empezar:** los pasos 0 a 3 no escriben nada. El primer
 paso que toca el servidor es el 4, y el primero que toca pacientes reales es el
 6. Cada paso tiene una verificación: si no da lo esperado, parar ahí — todos los
-pasos son idempotentes y se pueden repetir, pero corregir después de cargar 327
+pasos son idempotentes y se pueden repetir, pero corregir después de cargar 352
 pacientes cuesta mucho más que corregir antes.
 
 ---
 
-## Paso 0 — Antes de tocar nada
+## Paso 0 — Antes de tocar nada ✅ *resuelto*
 
-Tres cosas que no dependen del código y que bloquean todo lo demás:
+- [x] **Residencia de datos** — São Paulo aceptado.
+- [x] **Códigos `(verificar)`** — confirmados.
+- [x] **DNIs huérfanos** — entran con `--include-orphans`.
 
-- [ ] **Residencia de datos.** El RDS está en São Paulo y los pacientes son de
-      un hospital público argentino. Confirmar con el Marie Curie / el Dr.
-      Quiroga que la institución acepta que los datos residan en Brasil. Si no,
-      cambia la arquitectura (región AR u on-premise) y no tiene sentido migrar.
-- [ ] **Códigos `(verificar)`.** Siglas valvulares (`IT`→I36.1, `IM`→I34.0,
-      `IAo`→I35.1, `IP`→I37.1) y SNOMED de síntomas y hallazgos. Van a quedar en
-      ~1.400 `Condition`. Que los confirme un terminólogo.
-- [ ] **Los 25 DNIs huérfanos y las 71 filas sin DNI.** Decidir si son errores
-      de carga a corregir en la planilla, o si entran con `--include-orphans`.
+### Qué implica incluir los huérfanos
+
+Son **25 pacientes que sólo existen en las hojas seriadas**, y aportan datos
+clínicos reales: 162 `Observation`, 26 `Condition`, 13 `RiskAssessment`. La
+migración pasa de 327 a **352 pacientes** y de 15.025 a **15.264 recursos**.
+
+Pero entran **sin sexo y sin fecha de nacimiento**, y eso tiene dos
+consecuencias que el sistema hace explícitas:
+
+1. **No se les calcula ningún score.** Todas las ecuaciones (PREVENT,
+   Framingham, SCORE2, Globorisk) son sexo-específicas. El motor los omite y lo
+   registra en el log, en vez de asumir un sexo y devolver un riesgo inventado.
+2. **Quedan marcados** con `meta.tag = incomplete-baseline`, así que son
+   buscables y excluibles:
+
+   ```
+   Patient?_tag=…/cardiotox-record-id|incomplete-baseline
+   ```
+
+   En cualquier análisis que dependa de la demografía hay que excluirlos —
+   no que se mezclen sin distinción.
+
+> Las **71 filas sin DNI** de Cardiotox se omiten igual: sin clave de join no
+> hay a quién colgarles los datos. Si son pacientes reales, hay que corregir el
+> DNI en la planilla y re-migrar (es idempotente).
 
 ---
 
@@ -79,11 +97,13 @@ clave de join.
 
 ```bash
 npx tsx src/cardiotox-mapping/migration/migrate.ts cardiotox.csv \
-  --echo eco.csv --ecg ecg.csv --qt qt.csv --frcv frcv.csv --inspect
+  --echo eco.csv --ecg ecg.csv --qt qt.csv --frcv frcv.csv \
+  --include-orphans --inspect
 ```
 
 **Verificar:**
-- `Pacientes: 327` (o el número que corresponda al export del día)
+- `Pacientes: 352` con `--include-orphans` (327 con registro basal + 25
+  huérfanos), o el número que corresponda al export del día
 - La lista **SIN MAPEAR** sólo debería tener `ultimo control`, `PROXIMO CONTROL`
   y `Uso`. Cualquier columna nueva ahí es un alias que falta agregar — **no un
   dato para descartar**.
@@ -138,7 +158,7 @@ También probar `GET /fhir/R4/Patient` como A: debe devolver **sólo A**.
 ```bash
 npx tsx src/cardiotox-mapping/migration/migrate.ts cardiotox.csv \
   --echo eco.csv --ecg ecg.csv --qt qt.csv --frcv frcv.csv \
-  --limit 5 --execute
+  --include-orphans --limit 5 --execute
 ```
 
 **Verificar en Medplum, sobre esos 5 pacientes:**
@@ -149,6 +169,8 @@ npx tsx src/cardiotox-mapping/migration/migrate.ts cardiotox.csv \
 - [ ] `Condition` con ICD-10 **y** SNOMED
 - [ ] `MedicationStatement` con ATC (`L01DB` en quien recibió antraciclinas)
 - [ ] `RiskAssessment` con `risk-source = manual` en los scores cargados a mano
+- [ ] Si cae algún huérfano en los primeros 5: sin `gender` ni `birthDate`, con
+      `meta.tag = incomplete-baseline` y **sin** `RiskAssessment` calculado
 - [ ] **Correr el comando de nuevo**: los conteos **no deben cambiar**. Es
       idempotente (PUT por identifier); si algo se duplica, parar.
 
@@ -161,22 +183,80 @@ actualiza, no duplica.
 
 ```bash
 npx tsx src/cardiotox-mapping/migration/migrate.ts cardiotox.csv \
-  --echo eco.csv --ecg ecg.csv --qt qt.csv --frcv frcv.csv --execute
+  --echo eco.csv --ecg ecg.csv --qt qt.csv --frcv frcv.csv \
+  --include-orphans --execute
 ```
 
-Esperado: **327 pacientes · ~15.025 recursos**, progreso cada 25.
+Esperado: **352 pacientes · ~15.264 recursos**, progreso cada 25.
 
-**Verificar:** `✓ 327 OK · ✗ 0 con error`. Si hay errores, los lista por
-paciente — se corrigen y se re-corre sólo eso.
-
-> Los DNIs huérfanos quedan afuera salvo que agregues `--include-orphans`
-> (decisión del paso 0).
+**Verificar:**
+- `✓ 352 OK · ✗ 0 con error`. Si hay errores, los lista por paciente — se
+  corrigen y se re-corre sólo eso.
+- `Patient?_tag=…|incomplete-baseline` debe devolver **25**.
 
 ---
 
 ## Paso 8 — El agente investigador
 
-Cargar el client de investigación en la config de Claude Code:
+### Dónde va la configuración
+
+El servidor MCP es un **proceso local** (transporte stdio): Claude lo *ejecuta*
+en la máquina donde corre. Eso define dónde configurarlo.
+
+| Dónde | Archivo | Sirve para este caso |
+|---|---|---|
+| **Claude Code (CLI, local)** | `.mcp.json` en la raíz del repo | ✅ **Recomendado** |
+| **Claude Desktop** | `claude_desktop_config.json` | ✅ Sí |
+| **Claude Code en la web** | — | ❌ No (ver abajo) |
+
+**Por qué la web no sirve acá.** Claude Code en la web corre en un contenedor
+remoto, y su política de red **no llega a `api.medplum.com.ar`** (verificado: el
+proxy rechaza la conexión). Aunque se configurara, el servidor MCP no podría
+consultar la base. Además habría que meter el secreto en un entorno remoto, que
+es justo lo que conviene evitar con datos de un hospital público.
+
+> Se puede habilitar el host en la política de red del entorno remoto si en
+> algún momento hace falta. Hoy, para consultar datos de pacientes reales, la
+> opción sana es **local**.
+
+### Opción A — Claude Code (recomendado)
+
+El repo ya trae **`.mcp.json`** configurado. No lleva secretos: los toma del
+entorno.
+
+```bash
+export MEDPLUM_RESEARCH_CLIENT_ID=…
+export MEDPLUM_RESEARCH_CLIENT_SECRET=…
+claude            # desde la raíz del repo
+```
+
+Al abrir el proyecto, Claude Code pide aprobar el servidor la primera vez.
+Verificar con `/mcp`: debe listar `cardio-onco-research` conectado.
+
+> Las variables se llaman `MEDPLUM_RESEARCH_*` a propósito, distintas de las
+> `MEDPLUM_CLIENT_*` del `.env`: esas son las de **administración** y tienen
+> permiso de escritura. El agente debe usar las de investigación.
+
+Si preferís no exportar variables, `claude mcp add` guarda la config con
+credenciales en `~/.claude.json` (fuera del repo):
+
+```bash
+claude mcp add cardio-onco-research \
+  --env MEDPLUM_BASE_URL=https://api.medplum.com.ar \
+  --env MEDPLUM_CLIENT_ID=… \
+  --env MEDPLUM_CLIENT_SECRET=… \
+  -- npx tsx src/research/mcp-server.ts
+```
+
+### Opción B — Claude Desktop
+
+Editar el archivo de configuración:
+
+| SO | Ruta |
+|---|---|
+| macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
+| Linux | `~/.config/Claude/claude_desktop_config.json` |
 
 ```json
 {
@@ -184,8 +264,9 @@ Cargar el client de investigación en la config de Claude Code:
     "cardio-onco-research": {
       "command": "npx",
       "args": ["tsx", "src/research/mcp-server.ts"],
-      "cwd": "/ruta/al/repo/cardio-onco",
+      "cwd": "/ruta/absoluta/al/repo/cardio-onco",
       "env": {
+        "MEDPLUM_BASE_URL": "https://api.medplum.com.ar",
         "MEDPLUM_CLIENT_ID": "<el de cardio-onco-research>",
         "MEDPLUM_CLIENT_SECRET": "…"
       }
@@ -193,6 +274,12 @@ Cargar el client de investigación en la config de Claude Code:
   }
 }
 ```
+
+Acá **`cwd` es obligatorio** (Claude Desktop no arranca dentro del repo) y el
+secreto queda en texto plano en ese archivo — asegurate de que el equipo tenga
+permisos restrictivos. Reiniciar Claude Desktop después de editar.
+
+### Verificar antes de conectarlo
 
 Probar suelto primero:
 
@@ -229,6 +316,10 @@ Antes de creerle nada, verificar contra algo conocido:
   un rango fisiológico (~60%). Si da 12 o 200, hay un problema de unidades.
 - «Trayectoria de FEVI del paciente `<id>`» → contrastar con la planilla
   original de ese paciente.
+
+> **Al analizar, acordate de los 25 huérfanos.** Tienen FEVI seriada (sirven
+> para incidencia de CTRCD) pero no tienen edad ni sexo: cualquier análisis
+> ajustado por demografía debe excluirlos con el tag `incomplete-baseline`.
 
 ---
 
